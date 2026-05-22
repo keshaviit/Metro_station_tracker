@@ -1,0 +1,37 @@
+{
+  "name": "Delhi Metro Tracker",
+  "short_name": "Metro",
+  "description": "Real-time Delhi Metro navigation with smart GPS tracking and BFS routing",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0F1117",
+  "background_color": "#0F1117",
+  "icons": [
+    {
+      "src": "/metro-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/metro-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["navigation", "travel", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Find Route",
+      "url": "/",
+      "description": "Search for a metro route"
+    },
+    {
+      "name": "Live Track",
+      "url": "/track",
+      "description": "Track live journey"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "metro-tracker-root",
+  "version": "1.0.0",
+  "description": "Delhi Metro Tracker PWA — MERN monorepo",
+  "private": true,
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build:frontend": "cd frontend && npm run build",
+    "start:prod": "npm run build:frontend && pm2 start ecosystem.config.js --env production",
+    "stop:prod": "pm2 stop ecosystem.config.js"
+  },
+  "author": "Metro Tracker",
+  "license": "MIT"
+}
