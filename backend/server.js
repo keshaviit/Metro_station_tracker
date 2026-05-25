@@ -20,11 +20,35 @@ const { predictionEngine } = require('./src/services/predictionEngine');
 const app = express();
 const server = http.createServer(app);
 
+// ── CORS & Allowed Origins ────────────────────────────────────────────────────
+const allowedOrigins = (process.env.CLIENT_ORIGIN || 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim());
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl, or server-to-server)
+    if (!origin) return callback(null, true);
+
+    const isAllowed = allowedOrigins.includes(origin) ||
+                      origin.endsWith('.vercel.app') ||
+                      origin.startsWith('http://localhost:');
+
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+};
+
 // ── Socket.IO ─────────────────────────────────────────────────────────────────
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+    origin: corsOptions.origin,
     methods: ['GET', 'POST'],
+    credentials: true,
   },
 });
 
@@ -64,8 +88,7 @@ io.on('connection', (socket) => {
 });
 
 // ── Middleware ─────────────────────────────────────────────────────────────────
-const allowedOrigins = (process.env.CLIENT_ORIGIN || 'http://localhost:5173').split(',');
-app.use(cors({ origin: allowedOrigins, credentials: true }));
+app.use(cors(corsOptions));
 
 app.use(helmet());
 app.use(compression());
