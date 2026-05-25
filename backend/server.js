@@ -93,7 +93,7 @@ app.use('/api/trips', tripRoutes);
 if (process.env.NODE_ENV === 'production') {
   const frontendBuildPath = path.join(__dirname, '../frontend/dist');
   app.use(express.static(frontendBuildPath));
-  app.get('/(.*)', (req, res) => {
+  app.get('*', (req, res) => {
     res.sendFile(path.join(frontendBuildPath, 'index.html'));
   });
 } else {
