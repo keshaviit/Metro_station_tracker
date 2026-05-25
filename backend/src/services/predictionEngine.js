@@ -140,6 +140,16 @@ class PredictionEngine {
     const stopsRemaining = state.stopsRemaining();
     const shouldAlert = stopsRemaining <= 2 && stopsRemaining > 0;
 
+    const isOffRoute = state.routePath.indexOf(predictedStation) === -1;
+    const isWrongDirection = state.direction === 'backward';
+    let warningMessage = '';
+
+    if (isOffRoute) {
+      warningMessage = 'You have gone off-route! Tap Recalculate to get a new route from your current location.';
+    } else if (isWrongDirection) {
+      warningMessage = 'Warning: You are traveling in the wrong direction! Please check your train direction.';
+    }
+
     return {
       currentStation: predictedStation,
       nextStation,
@@ -148,6 +158,9 @@ class PredictionEngine {
       confidence,
       method,
       visitedStations: state.visitedStations,
+      isOffRoute,
+      isWrongDirection,
+      warningMessage,
     };
   }
 
@@ -191,6 +204,25 @@ class PredictionEngine {
     const state = this.activeTripStates.get(tripId);
     this.activeTripStates.delete(tripId);
     return state ? state.visitedStations : [];
+  }
+
+  /**
+   * Update active trip route dynamically during recalculation
+   */
+  updateTripRoute(tripId, newRoutePath) {
+    const state = this.activeTripStates.get(tripId);
+    if (!state) return { error: 'Trip state not found' };
+
+    state.routePath = newRoutePath;
+    state.currentIndex = 0;
+    state.direction = 'forward';
+    
+    state.lastKnownStation = newRoutePath[0];
+    if (!state.visitedStations.includes(newRoutePath[0])) {
+      state.visitedStations.push(newRoutePath[0]);
+    }
+    
+    return state;
   }
 
   getState(tripId) {

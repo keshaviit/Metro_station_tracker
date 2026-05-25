@@ -117,3 +117,44 @@ exports.endTrip = async (req, res, next) => {
     next(err);
   }
 };
+
+/**
+ * POST /api/trips/:tripId/recalculate
+ * Body: { newRoutePath }
+ */
+exports.recalculateTrip = async (req, res, next) => {
+  try {
+    const { tripId } = req.params;
+    const { newRoutePath } = req.body;
+
+    if (!tripId || !newRoutePath || !Array.isArray(newRoutePath)) {
+      return res.status(400).json({ success: false, message: 'tripId and newRoutePath (array) are required' });
+    }
+
+    const state = predictionEngine.updateTripRoute(tripId, newRoutePath);
+    if (state.error) {
+      return res.status(404).json({ success: false, message: state.error });
+    }
+
+    try {
+      await Trip.findOneAndUpdate(
+        { tripId },
+        { routePath: newRoutePath }
+      );
+    } catch (dbErr) {
+      console.warn('DB update during recalculation skipped:', dbErr.message);
+    }
+
+    res.json({
+      success: true,
+      message: 'Route updated successfully in active session',
+      data: {
+        routePath: state.routePath,
+        currentIndex: state.currentIndex,
+        lastKnownStation: state.lastKnownStation,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};

@@ -30,6 +30,7 @@ export const metroAPI = {
   startTrip:        (body)       => api.post('/trips/start', body),
   updateLocation:   (body)       => api.post('/trips/update-location', body),
   endTrip:          (tripId)     => api.post(`/trips/${tripId}/end`),
+  recalculateTrip:  (tripId, body) => api.post(`/trips/${tripId}/recalculate`, body),
 };
 
 export default api;

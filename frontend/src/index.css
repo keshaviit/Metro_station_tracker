@@ -140,3 +140,24 @@ body {
   border-top: 1px solid rgba(255,255,255,0.06);
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
+
+/* ── Leaflet Popup Custom Styling ───────────────────────────── */
+.leaflet-popup-content-wrapper {
+  background: rgba(26, 29, 39, 0.95) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #F8FAFC !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+}
+
+.leaflet-popup-tip {
+  background: rgba(26, 29, 39, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.leaflet-popup-close-button {
+  color: #94A3B8 !important;
+}
+

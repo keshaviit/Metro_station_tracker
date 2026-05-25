@@ -37,4 +37,7 @@ router.post(
 // POST /api/trips/:tripId/end
 router.post('/:tripId/end', tripController.endTrip);
 
+// POST /api/trips/:tripId/recalculate
+router.post('/:tripId/recalculate', tripController.recalculateTrip);
+
 module.exports = router;
