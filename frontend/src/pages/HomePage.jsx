@@ -108,6 +108,16 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [nearestLoading, setNearestLoading] = useState(false);
+  const [homeStation, setHomeStation] = useState(() => localStorage.getItem('smart_metro_home') || 'Noida Sector 52');
+  const [officeStation, setOfficeStation] = useState(() => localStorage.getItem('smart_metro_office') || 'Kashmere Gate');
+  const [showConfig, setShowConfig] = useState(false);
+  const [tempHome, setTempHome] = useState(homeStation);
+  const [tempOffice, setTempOffice] = useState(officeStation);
+
+  useEffect(() => {
+    setTempHome(homeStation);
+    setTempOffice(officeStation);
+  }, [homeStation, officeStation]);
 
   useEffect(() => {
     metroAPI.getStationNames().then((res) => setStationNames(res.data || []));
@@ -207,24 +217,83 @@ export default function HomePage() {
 
       {/* Floating Quick Action Tiles */}
       <div className="mb-5 relative z-10">
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2.5 pl-1">⚡ Instant Despatch Actions</p>
+        <div className="flex justify-between items-center mb-2.5 pl-1">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">⚡ Instant Despatch Actions</p>
+          <button 
+            onClick={() => setShowConfig(!showConfig)}
+            className="text-[9px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors uppercase tracking-wider flex items-center gap-1"
+          >
+            ⚙️ Edit Commutes
+          </button>
+        </div>
+
+        {showConfig && (
+          <div className="glass-card p-4 mb-4 border border-indigo-500/20 bg-indigo-500/5 backdrop-blur-md animate-slide-up space-y-3">
+            <p className="text-[10px] font-bold text-white uppercase tracking-wider">Configure Commute Preferences</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">🏠 Home Station</label>
+                <select
+                  value={tempHome}
+                  onChange={(e) => setTempHome(e.target.value)}
+                  className="w-full bg-[#12141c] border border-white/10 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                >
+                  <option value="">Select Home...</option>
+                  {stationNames.map(name => <option key={name} value={name}>{name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">💼 Office Station</label>
+                <select
+                  value={tempOffice}
+                  onChange={(e) => setTempOffice(e.target.value)}
+                  className="w-full bg-[#12141c] border border-white/10 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                >
+                  <option value="">Select Office...</option>
+                  {stationNames.map(name => <option key={name} value={name}>{name}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end pt-1">
+              <button
+                onClick={() => setShowConfig(false)}
+                className="px-3 py-1.5 text-[9px] font-bold text-slate-400 hover:text-white uppercase tracking-wider"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setHomeStation(tempHome);
+                  setOfficeStation(tempOffice);
+                  localStorage.setItem('smart_metro_home', tempHome);
+                  localStorage.setItem('smart_metro_office', tempOffice);
+                  setShowConfig(false);
+                }}
+                className="px-3 py-1.5 text-[9px] font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg uppercase tracking-wider shadow-md shadow-indigo-600/30"
+              >
+                Save Preferences
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-3">
           <button
-            onClick={() => handleQuickAction('Kashmere Gate', 'Hauz Khas')}
-            className="glass-card p-3.5 text-left border border-white/5 hover:border-indigo-500/30 bg-[#12141c]/30 hover:bg-[#12141c]/60 backdrop-blur-md transition-all group active:scale-95 duration-200"
+            onClick={() => handleQuickAction(homeStation, officeStation)}
+            className="glass-card p-3.5 text-left border border-white/5 hover:border-indigo-500/30 bg-[#12141c]/30 hover:bg-[#12141c]/60 backdrop-blur-md transition-all group active:scale-95 duration-200 animate-slide-up"
           >
             <div className="text-lg mb-1 group-hover:scale-110 transition-transform duration-200">💼</div>
             <div className="font-bold text-white text-xs">Work Commute</div>
-            <div className="text-[10px] text-slate-400 mt-1">Kashmere Gate ➔ Hauz Khas</div>
+            <div className="text-[10px] text-slate-400 mt-1 truncate">{homeStation} ➔ {officeStation}</div>
           </button>
 
           <button
-            onClick={() => handleQuickAction('Rajiv Chowk', 'Noida Sector 52')}
-            className="glass-card p-3.5 text-left border border-white/5 hover:border-purple-500/30 bg-[#12141c]/30 hover:bg-[#12141c]/60 backdrop-blur-md transition-all group active:scale-95 duration-200"
+            onClick={() => handleQuickAction(officeStation, homeStation)}
+            className="glass-card p-3.5 text-left border border-white/5 hover:border-purple-500/30 bg-[#12141c]/30 hover:bg-[#12141c]/60 backdrop-blur-md transition-all group active:scale-95 duration-200 animate-slide-up"
           >
             <div className="text-lg mb-1 group-hover:scale-110 transition-transform duration-200">🏠</div>
-            <div className="font-bold text-white text-xs">Home Route</div>
-            <div className="text-[10px] text-slate-400 mt-1">Rajiv Chowk ➔ Noida 52</div>
+            <div className="font-bold text-white text-xs">Home Commute</div>
+            <div className="text-[10px] text-slate-400 mt-1 truncate">{officeStation} ➔ {homeStation}</div>
           </button>
         </div>
       </div>
