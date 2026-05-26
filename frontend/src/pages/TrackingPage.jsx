@@ -42,16 +42,18 @@ function playMetroChime() {
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const now = audioCtx.currentTime;
 
-    const playTone = (freq, startTime, duration) => {
+    const playTone = (freq, startTime, duration, type = 'triangle') => {
       const osc = audioCtx.createOscillator();
       const gainNode = audioCtx.createGain();
 
-      osc.type = 'sine';
+      osc.type = type;
       osc.frequency.setValueAtTime(freq, startTime);
 
+      // Aggressive loud attack and sustain
       gainNode.gain.setValueAtTime(0, startTime);
-      gainNode.gain.linearRampToValueAtTime(0.35, startTime + 0.05);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+      gainNode.gain.linearRampToValueAtTime(1.5, startTime + 0.02);
+      gainNode.gain.setValueAtTime(1.5, startTime + duration - 0.05);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
 
       osc.connect(gainNode);
       gainNode.connect(audioCtx.destination);
@@ -60,15 +62,21 @@ function playMetroChime() {
       osc.stop(startTime + duration);
     };
 
-    // C5 → E5 → G5 triple chime
-    playTone(523.25, now, 0.4);
-    playTone(659.25, now + 0.15, 0.4);
-    playTone(783.99, now + 0.3, 0.6);
+    // Urgent rapid sequence (High-pitch, fast beeps)
+    // Beep 1
+    playTone(880, now, 0.15, 'square'); // A5
+    playTone(1318.51, now + 0.15, 0.15, 'triangle'); // E6
+    // Beep 2
+    playTone(880, now + 0.4, 0.15, 'square');
+    playTone(1318.51, now + 0.55, 0.15, 'triangle');
+    // Beep 3
+    playTone(880, now + 0.8, 0.15, 'square');
+    playTone(1318.51, now + 0.95, 0.3, 'triangle');
 
-    // Auto-close after the chime finishes to free resources
+    // Auto-close after the sequence finishes
     setTimeout(() => {
       audioCtx.close().catch(() => {});
-    }, 1200);
+    }, 1500);
 
     return audioCtx;
   } catch (err) {
@@ -350,14 +358,14 @@ export default function TrackingPage() {
     playMetroChime();
     triggerVibration([300, 100, 300, 100, 500]);
 
-    // Then loop: chime every 2.5s, vibration every 2s
+    // Then loop: chime sequence every 1.5s, vibration every 1s
     alarmIntervalRef.current = setInterval(() => {
       playMetroChime();
-    }, 2500);
+    }, 1500);
 
     vibrationIntervalRef.current = setInterval(() => {
       triggerVibration([300, 100, 300, 100, 500]);
-    }, 2000);
+    }, 1000);
   }, [activeAlarm]);
 
   const clearLoopingAlarm = useCallback(() => {
