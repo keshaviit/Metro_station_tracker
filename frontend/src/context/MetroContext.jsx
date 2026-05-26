@@ -15,7 +15,7 @@ const initialState = {
 
   // UI
   isTracking: false,
-  alertFired: false,
+  lastAlertedStops: -1,
 
   // Stations data
   allStations: [],
@@ -29,10 +29,10 @@ function reducer(state, action) {
     case 'SET_LOCATION':    return { ...state, userLocation: action.payload };
     case 'SET_NEAREST':     return { ...state, nearestStation: action.payload };
     case 'SET_TRACKING':    return { ...state, isTracking: action.payload };
-    case 'SET_ALERT_FIRED': return { ...state, alertFired: action.payload };
+    case 'SET_LAST_ALERTED_STOPS': return { ...state, lastAlertedStops: action.payload };
     case 'SET_ALL_STATIONS':return { ...state, allStations: action.payload };
     case 'END_TRIP':
-      return { ...state, tripId: null, isTracking: false, prediction: null, alertFired: false };
+      return { ...state, tripId: null, isTracking: false, prediction: null, lastAlertedStops: -1 };
     default:
       return state;
   }
@@ -41,6 +41,14 @@ function reducer(state, action) {
 export function MetroProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const socketRef = useRef(null);
+  const lastAlertedStopsRef = useRef(-1);
+
+  // Sync ref with reset state on trip end
+  useEffect(() => {
+    if (state.tripId === null) {
+      lastAlertedStopsRef.current = -1;
+    }
+  }, [state.tripId]);
 
   // Initialise Socket.IO once
   useEffect(() => {
@@ -53,8 +61,10 @@ export function MetroProvider({ children }) {
     socket.on('prediction', (data) => dispatch({ type: 'SET_PREDICTION', payload: data }));
     socket.on('location-update', (data) => dispatch({ type: 'SET_PREDICTION', payload: data }));
     socket.on('destination-alert', (data) => {
-      if (!state.alertFired) {
-        dispatch({ type: 'SET_ALERT_FIRED', payload: true });
+      const stops = data.stopsRemaining != null ? data.stopsRemaining : -1;
+      if (lastAlertedStopsRef.current !== stops) {
+        lastAlertedStopsRef.current = stops;
+        dispatch({ type: 'SET_LAST_ALERTED_STOPS', payload: stops });
         fireNotification(data.message);
       }
     });
@@ -72,7 +82,25 @@ export function MetroProvider({ children }) {
 
   function fireNotification(message) {
     if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('🚇 Metro Tracker', { body: message, icon: '/metro-icon.png' });
+      const icon = '/metro-icon.png';
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready
+          .then((registration) => {
+            registration.showNotification('🚇 Metro Tracker', {
+              body: message,
+              icon,
+              badge: icon,
+              vibrate: [200, 100, 200],
+              tag: 'metro-alert',
+              renotify: true,
+            });
+          })
+          .catch(() => {
+            new Notification('🚇 Metro Tracker', { body: message, icon });
+          });
+      } else {
+        new Notification('🚇 Metro Tracker', { body: message, icon });
+      }
     }
   }
 

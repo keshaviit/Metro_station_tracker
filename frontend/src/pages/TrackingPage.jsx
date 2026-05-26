@@ -77,9 +77,14 @@ function playMetroAlarm() {
 
 const gpsIcon = L.divIcon({
   className: '',
-  html: `<div class="gps-dot"></div>`,
-  iconSize: [16, 16],
-  iconAnchor: [8, 8],
+  html: `
+    <div style="position:relative; width:24px; height:24px; display:flex; align-items:center; justify-content:center;">
+      <div style="position:absolute; width:24px; height:24px; background:rgba(99, 102, 241, 0.2); border: 2px solid #818CF8; border-radius:50%; box-shadow:0 0 12px #6366F1; animation:gpsPulse 2s infinite;"></div>
+      <div style="position:absolute; width:12px; height:12px; background:#ffffff; border-radius:50%; border:2.5px solid #4F46E5; top: 6px; left: 6px; box-shadow: 0 0 4px rgba(0,0,0,0.5);"></div>
+    </div>
+  `,
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
 });
 
 function MapAutoCenter({ center }) {
@@ -93,7 +98,7 @@ export default function TrackingPage() {
   const lastAlertedStopsRef = useRef(null);
   const navigate = useNavigate();
   const { startTracking, stopTracking } = useGPSTracking();
-  const { notify } = useNotification();
+  const { permission, requestPermission, notify } = useNotification();
   const [allStations, setAllStations] = useState([]);
   const [recalculating, setRecalculating] = useState(false);
 
@@ -143,6 +148,12 @@ export default function TrackingPage() {
           lastAlertedStopsRef.current = 0;
           playMetroAlarm();
           notify('🎉 Deboard Now!', `You have arrived at ${destinationName}!`);
+          
+          // Auto-stop tracking to save battery and conserve GPS
+          stopTracking();
+          if (state.tripId) {
+            metroAPI.endTrip(state.tripId).catch(() => {});
+          }
         }
       }
     }
@@ -284,197 +295,245 @@ export default function TrackingPage() {
           style={{ borderRadius: 12 }}
         >
           <ArrowLeft className="w-4 h-4 text-white" />
-        </button>
-      </div>
-
-      {/* Bottom Tracking Panel */}
+        </but      {/* Bottom Tracking Panel */}
       <div className="bg-metro-dark border-t border-metro-border p-4 pb-28 space-y-3">
-        {/* Off-Route / Wrong-Direction Warning Banner */}
-        {prediction?.warningMessage && (
-          <div className={`border rounded-xl px-4 py-3 flex flex-col gap-3 animate-pulse ${
-            prediction.isOffRoute 
-              ? 'bg-red-500/15 border-red-500/30 text-red-400' 
-              : 'bg-yellow-500/15 border-yellow-500/30 text-yellow-400'
-          }`}>
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="w-5 h-5 flex-shrink-0 animate-bounce" />
-              <div>
-                <p className="text-sm font-bold">
-                  {prediction.isOffRoute ? '🚨 Off-Route Detected!' : '⚠️ Wrong Direction!'}
-                </p>
-                <p className="text-xs text-slate-300">{prediction.warningMessage}</p>
-              </div>
+        {/* Explicit Notification Permission banner if not granted */}
+        {permission !== 'granted' && (
+          <div className="bg-violet-500/10 border border-violet-500/30 rounded-xl px-4 py-3 flex items-center gap-3 animate-fade-in">
+            <div className="p-2 bg-violet-500/20 rounded-lg text-violet-400">
+              🔔
             </div>
-            {prediction.isOffRoute && (
-              <button
-                onClick={handleRecalculate}
-                disabled={recalculating}
-                className="w-full bg-red-500/20 hover:bg-red-500/40 border border-red-500/40 text-red-300 font-bold py-2.5 rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5"
-              >
-                {recalculating ? (
-                  <>Recalculating...</>
-                ) : (
-                  <>🔄 Recalculate Route from Here</>
-                )}
-              </button>
-            )}
+            <div className="flex-1">
+              <p className="text-xs font-bold text-violet-300">Enable Live Alerts & Audio</p>
+              <p className="text-[10px] text-slate-400">Receive smart chimes when approaching your stop.</p>
+            </div>
+            <button
+              onClick={async () => {
+                const res = await requestPermission();
+                if (res === 'granted') {
+                  playMetroAlarm();
+                  notify('🚇 Alerts Activated!', 'You will now receive notifications for this trip.');
+                }
+              }}
+              className="px-3 py-1.5 text-[10px] bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-lg transition-colors flex-shrink-0"
+            >
+              Enable
+            </button>
           </div>
         )}
 
-        {/* Dynamic Station Alarm & Alert Banner */}
-        {prediction && !prediction.warningMessage && (
-          prediction.stopsRemaining === 2 ? (
-            <div className="bg-orange-500/15 border border-orange-500/30 rounded-xl px-4 py-3 flex items-center gap-3 animate-pulse">
-              <div className="p-2 bg-orange-500/20 rounded-lg text-orange-400 animate-bounce">
-                🔔
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-bold text-orange-400 flex items-center gap-1.5">
-                  Next-to-Next Station Alarm!
-                </p>
-                <p className="text-xs text-slate-300">
-                  You are approaching <strong className="text-white">{prediction.nextStation || 'your destination'}</strong>. Get ready!
-                </p>
-              </div>
-              <button 
-                onClick={playMetroAlarm}
-                className="px-3 py-1.5 text-[10px] bg-orange-500/20 border border-orange-500/30 hover:bg-orange-500/40 text-orange-300 font-bold rounded-lg transition-colors flex-shrink-0"
-              >
-                🔊 Chime
-              </button>
+        {prediction?.stopsRemaining === 0 ? (
+          /* Journey Completed Dashboard View */
+          <div className="glass-card p-5 text-center space-y-4 border border-green-500/30 bg-green-500/5 animate-scale-up">
+            <div className="w-12 h-12 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mx-auto text-2xl animate-bounce">
+              🎉
             </div>
-          ) : prediction.stopsRemaining === 1 ? (
-            <div className="bg-red-500/15 border border-red-500/30 rounded-xl px-4 py-3 flex items-center gap-3 animate-pulse">
-              <div className="p-2 bg-red-500/20 rounded-lg text-red-400 animate-bounce">
-                🚨
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-bold text-red-400 flex items-center gap-1.5">
-                  Next Station Alarm!
-                </p>
-                <p className="text-xs text-slate-300">
-                  The very next station is <strong className="text-white">{destinationName}</strong>. Please prepare to deboard!
-                </p>
-              </div>
-              <button 
-                onClick={playMetroAlarm}
-                className="px-3 py-1.5 text-[10px] bg-red-500/20 border border-red-500/30 hover:bg-red-500/40 text-red-300 font-bold rounded-lg transition-colors flex-shrink-0"
-              >
-                🔊 Chime
-              </button>
-            </div>
-          ) : prediction.stopsRemaining === 0 ? (
-            <div className="bg-green-500/15 border border-green-500/30 rounded-xl px-4 py-3 flex items-center gap-3 animate-bounce">
-              <div className="p-2 bg-green-500/20 rounded-lg text-green-400">
-                🎉
-              </div>
-              <div>
-                <p className="text-sm font-bold text-green-400">Destination Arrived!</p>
-                <p className="text-xs text-slate-300">
-                  You have successfully reached <strong className="text-white">{destinationName}</strong>. Thank you for traveling!
-                </p>
-              </div>
-            </div>
-          ) : null
-        )}
-
-        {/* Current Station */}
-        <div className="glass-card p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                {state.isTracking ? 'Live Tracking' : 'Not Tracking'}
-              </span>
-            </div>
-            {prediction?.confidence && (
-              <span className={`text-xs px-2 py-0.5 rounded-full ${
-                prediction.confidence === 'high' ? 'bg-green-500/20 text-green-400' :
-                prediction.confidence === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                'bg-red-500/20 text-red-400'
-              }`}>
-                {prediction.confidence} confidence
-              </span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-3">
-            <MapPin className="w-5 h-5 text-metro-accent animate-bounce" />
             <div>
-              <p className="text-xs text-slate-400">Current Station</p>
-              <p className="font-bold text-white">{prediction?.currentStation || route.path[0]}</p>
+              <h3 className="text-lg font-black text-white">Journey Completed Successfully!</h3>
+              <p className="text-xs text-green-400 font-semibold uppercase tracking-wider">Arrived at {destinationName}</p>
+              <p className="text-xs text-slate-400 mt-2">
+                You have reached your destination. GPS tracking was automatically turned off to conserve your device's battery.
+              </p>
             </div>
+            <div className="bg-metro-dark/50 border border-metro-border rounded-xl p-3 grid grid-cols-2 gap-2 text-left">
+              <div>
+                <p className="text-[10px] text-slate-500 uppercase font-bold">Stations Traveled</p>
+                <p className="text-sm font-bold text-white">{(prediction?.visitedStations?.length || 0)} stops</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-slate-500 uppercase font-bold">Tracking Status</p>
+                <p className="text-sm font-bold text-green-400 flex items-center gap-1">
+                  <span className="animate-pulse">●</span> Battery Safe
+                </p>
+              </div>
+            </div>
+            <button
+              id="end-trip-btn"
+              onClick={handleEndTrip}
+              className="w-full btn-gradient text-white font-bold py-3 rounded-xl hover:opacity-90 transition-all text-xs uppercase tracking-wider"
+            >
+              Back to Home
+            </button>
           </div>
-
-          {prediction?.nextStation && (
-            <div className="mt-3 flex items-center gap-3">
-              <Navigation2 className="w-5 h-5 text-violet-400 rotate-90" />
-              <div>
-                <p className="text-xs text-slate-400">Next Station</p>
-                <p className="font-semibold text-white">{prediction.nextStation}</p>
+        ) : (
+          /* Normal Active Tracking UI */
+          <>
+            {/* Off-Route / Wrong-Direction Warning Banner */}
+            {prediction?.warningMessage && (
+              <div className={`border rounded-xl px-4 py-3 flex flex-col gap-3 animate-pulse ${
+                prediction.isOffRoute 
+                  ? 'bg-red-500/15 border-red-500/30 text-red-400' 
+                  : 'bg-yellow-500/15 border-yellow-500/30 text-yellow-400'
+              }`}>
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 flex-shrink-0 animate-bounce" />
+                  <div>
+                    <p className="text-sm font-bold">
+                      {prediction.isOffRoute ? '🚨 Off-Route Detected!' : '⚠️ Wrong Direction!'}
+                    </p>
+                    <p className="text-xs text-slate-300">{prediction.warningMessage}</p>
+                  </div>
+                </div>
+                {prediction.isOffRoute && (
+                  <button
+                    onClick={handleRecalculate}
+                    disabled={recalculating}
+                    className="w-full bg-red-500/20 hover:bg-red-500/40 border border-red-500/40 text-red-300 font-bold py-2.5 rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    {recalculating ? (
+                      <>Recalculating...</>
+                    ) : (
+                      <>🔄 Recalculate Route from Here</>
+                    )}
+                  </button>
+                )}
               </div>
-            </div>
-          )}
+            )}
 
-          {prediction?.stopsRemaining != null && (
-            <div className="mt-3 flex items-center gap-3">
-              <CheckCircle2 className="w-5 h-5 text-yellow-400" />
-              <div>
-                <p className="text-xs text-slate-400">Stops Remaining</p>
-                <p className="font-bold text-white">{prediction.stopsRemaining}</p>
+            {/* Dynamic Station Alarm & Alert Banner */}
+            {prediction && !prediction.warningMessage && (
+              prediction.stopsRemaining === 2 ? (
+                <div className="bg-orange-500/15 border border-orange-500/30 rounded-xl px-4 py-3 flex items-center gap-3 animate-pulse">
+                  <div className="p-2 bg-orange-500/20 rounded-lg text-orange-400 animate-bounce">
+                    🔔
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-orange-400 flex items-center gap-1.5">
+                      Next-to-Next Station Alarm!
+                    </p>
+                    <p className="text-xs text-slate-300">
+                      You are approaching <strong className="text-white">{prediction.nextStation || 'your destination'}</strong>. Get ready!
+                    </p>
+                  </div>
+                  <button 
+                    onClick={playMetroAlarm}
+                    className="px-3 py-1.5 text-[10px] bg-orange-500/20 border border-orange-500/30 hover:bg-orange-500/40 text-orange-300 font-bold rounded-lg transition-colors flex-shrink-0"
+                  >
+                    🔊 Chime
+                  </button>
+                </div>
+              ) : prediction.stopsRemaining === 1 ? (
+                <div className="bg-red-500/15 border border-red-500/30 rounded-xl px-4 py-3 flex items-center gap-3 animate-pulse">
+                  <div className="p-2 bg-red-500/20 rounded-lg text-red-400 animate-bounce">
+                    🚨
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-red-400 flex items-center gap-1.5">
+                      Next Station Alarm!
+                    </p>
+                    <p className="text-xs text-slate-300">
+                      The very next station is <strong className="text-white">{destinationName}</strong>. Please prepare to deboard!
+                    </p>
+                  </div>
+                  <button 
+                    onClick={playMetroAlarm}
+                    className="px-3 py-1.5 text-[10px] bg-red-500/20 border border-red-500/30 hover:bg-red-500/40 text-red-300 font-bold rounded-lg transition-colors flex-shrink-0"
+                  >
+                    🔊 Chime
+                  </button>
+                </div>
+              ) : null
+            )}
+
+            {/* Current Station */}
+            <div className="glass-card p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    {state.isTracking ? 'Live Tracking' : 'Not Tracking'}
+                  </span>
+                </div>
+                {prediction?.confidence && (
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                    prediction.confidence === 'high' ? 'bg-green-500/20 text-green-400' :
+                    prediction.confidence === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                    'bg-red-500/20 text-red-400'
+                  }`}>
+                    {prediction.confidence} confidence
+                  </span>
+                )}
               </div>
-            </div>
-          )}
 
-          {/* Visited Stations History */}
-          {prediction?.visitedStations && prediction.visitedStations.length > 0 && (
-            <div className="mt-4 pt-3 border-t border-metro-border">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Travel History</p>
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-thin">
-                {prediction.visitedStations.map((name, index) => {
-                  const stationDetail = allStations.find(s => s.name === name) || route?.stationDetails?.find(s => s.name === name);
-                  const isInterchange = stationDetail?.interchange;
-                  const lineColor = stationDetail ? LINE_COLORS[stationDetail.line] : null;
-                  const congestion = stationDetail?.congestion;
-                  
-                  return (
-                    <div key={name + index} className="flex items-center gap-1.5 flex-shrink-0 animate-fade-in">
-                      <span className="text-xs bg-metro-card border border-metro-border text-slate-300 px-2.5 py-1 rounded-full flex items-center gap-1.5">
-                        <span className="text-green-400">✓</span>
-                        {lineColor && (
-                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: lineColor }} />
-                        )}
-                        <span>{name}</span>
-                        {isInterchange && (
-                          <span className="text-[9px] px-1 py-0.2 bg-violet-500/20 text-violet-400 border border-violet-500/30 rounded">
-                            🔄
+              <div className="flex items-center gap-3">
+                <MapPin className="w-5 h-5 text-metro-accent animate-bounce" />
+                <div>
+                  <p className="text-xs text-slate-400">Current Station</p>
+                  <p className="font-bold text-white">{prediction?.currentStation || route.path[0]}</p>
+                </div>
+              </div>
+
+              {prediction?.nextStation && (
+                <div className="mt-3 flex items-center gap-3">
+                  <Navigation2 className="w-5 h-5 text-violet-400 rotate-90" />
+                  <div>
+                    <p className="text-xs text-slate-400">Next Station</p>
+                    <p className="font-semibold text-white">{prediction.nextStation}</p>
+                  </div>
+                </div>
+              )}
+
+              {prediction?.stopsRemaining != null && (
+                <div className="mt-3 flex items-center gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-yellow-400" />
+                  <div>
+                    <p className="text-xs text-slate-400">Stops Remaining</p>
+                    <p className="font-bold text-white">{prediction.stopsRemaining}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Visited Stations History */}
+              {prediction?.visitedStations && prediction.visitedStations.length > 0 && (
+                <div className="mt-4 pt-3 border-t border-metro-border">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Travel History</p>
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-thin">
+                    {prediction.visitedStations.map((name, index) => {
+                      const stationDetail = allStations.find(s => s.name === name) || route?.stationDetails?.find(s => s.name === name);
+                      const isInterchange = stationDetail?.interchange;
+                      const lineColor = stationDetail ? LINE_COLORS[stationDetail.line] : null;
+                      const congestion = stationDetail?.congestion;
+                      
+                      return (
+                        <div key={name + index} className="flex items-center gap-1.5 flex-shrink-0 animate-fade-in">
+                          <span className="text-xs bg-metro-card border border-metro-border text-slate-300 px-2.5 py-1 rounded-full flex items-center gap-1.5">
+                            <span className="text-green-400">✓</span>
+                            {lineColor && (
+                              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: lineColor }} />
+                            )}
+                            <span>{name}</span>
+                            {isInterchange && (
+                              <span className="text-[9px] px-1 py-0.2 bg-violet-500/20 text-violet-400 border border-violet-500/30 rounded">
+                                🔄
+                              </span>
+                            )}
+                            {congestion && (
+                              <span className={`text-[9px] px-1.5 py-0.2 border rounded flex items-center gap-1 font-medium ${congestion.colorClass}`}>
+                                👥 {congestion.label}
+                              </span>
+                            )}
                           </span>
-                        )}
-                        {congestion && (
-                          <span className={`text-[9px] px-1.5 py-0.2 border rounded flex items-center gap-1 font-medium ${congestion.colorClass}`}>
-                            👥 {congestion.label}
-                          </span>
-                        )}
-                      </span>
-                      {index < prediction.visitedStations.length - 1 && (
-                        <span className="text-slate-600 text-xs font-bold">➔</span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                          {index < prediction.visitedStations.length - 1 && (
+                            <span className="text-slate-600 text-xs font-bold">➔</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        {/* End Trip */}
-        <button
-          id="end-trip-btn"
-          onClick={handleEndTrip}
-          className="w-full bg-red-500/20 border border-red-500/40 text-red-400 font-semibold py-3 rounded-xl hover:bg-red-500/30 transition-colors text-sm"
-        >
-          End Trip
-        </button>
+            {/* End Trip */}
+            <button
+              id="end-trip-btn"
+              onClick={handleEndTrip}
+              className="w-full bg-red-500/20 border border-red-500/40 text-red-400 font-semibold py-3 rounded-xl hover:bg-red-500/30 transition-colors text-sm"
+            >
+              End Trip
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

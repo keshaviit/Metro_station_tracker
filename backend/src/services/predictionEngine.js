@@ -84,63 +84,68 @@ class PredictionEngine {
     const state = this.activeTripStates.get(tripId);
     if (!state) return { error: 'Trip not found' };
 
-    const GPS_WEAK_THRESHOLD = 100; // metres accuracy
-    const STATION_MATCH_RADIUS = 300; // metres
+    // Dynamic match radius scales with accuracy (e.g. 300m + gpsAccuracy) but capped at 500m
+    const STATION_MATCH_RADIUS = Math.min(500, Math.max(300, 300 + gpsAccuracy));
 
-    // Always get nearest candidates
+    // Get 5 nearest candidates globally
     const nearestCandidates = findNNearestStations(lat, lng, 5);
-    const [first] = nearestCandidates;
+    if (nearestCandidates.length === 0) {
+      return { error: 'No stations near user' };
+    }
 
     let predictedStation = null;
-    let confidence = 'low';
-    let method = 'gps';
+    let confidence = gpsAccuracy <= 100 ? 'high' : 'medium';
+    let method = 'in-transit';
 
-    // Strategy 1: Strong GPS — direct nearest station
-    if (gpsAccuracy <= GPS_WEAK_THRESHOLD && first.distanceMeters <= STATION_MATCH_RADIUS) {
-      const stationName = first.station.name;
-
-      // Validate against planned route neighbours
-      const routeNeighbors = this._getRouteContext(state);
-      if (routeNeighbors.includes(stationName)) {
-        state.updateStation(stationName);
+    // 1. Check if user has arrived at the NEXT station or any FUTURE station along the planned route
+    const remainingStations = state.routePath.slice(state.currentIndex + 1);
+    for (const stationName of remainingStations) {
+      const candidate = nearestCandidates.find((c) => c.station.name === stationName);
+      if (candidate && candidate.distanceMeters <= STATION_MATCH_RADIUS) {
         predictedStation = stationName;
-        confidence = 'high';
         method = 'gps+route';
-      } else {
-        // GPS says different station — trust GPS but flag
-        predictedStation = stationName;
-        confidence = 'medium';
-        method = 'gps';
+        break; // Advanced to the closest matching future station
       }
     }
 
-    // Strategy 2: Weak GPS / underground — use graph prediction
-    if (!predictedStation || gpsAccuracy > GPS_WEAK_THRESHOLD) {
-      const graphPrediction = this._graphPredict(state, nearestCandidates);
-      if (graphPrediction) {
-        predictedStation = graphPrediction;
-        confidence = 'medium';
-        method = 'graph';
+    // 2. If not at a future station, check if user is still close to the CURRENT station
+    if (!predictedStation) {
+      const currentStationName = state.routePath[state.currentIndex];
+      const candidate = nearestCandidates.find((c) => c.station.name === currentStationName);
+      if (candidate && candidate.distanceMeters <= STATION_MATCH_RADIUS) {
+        predictedStation = currentStationName;
+        method = 'gps+route';
       }
     }
 
-    // Fallback
+    // 3. Check for Off-Route: If the closest station globally is NOT on the planned route, and user is close to it
+    if (!predictedStation) {
+      const closestGlobal = nearestCandidates[0];
+      const isGlobalOnRoute = state.routePath.includes(closestGlobal.station.name);
+      if (!isGlobalOnRoute && closestGlobal.distanceMeters <= 300) {
+        predictedStation = closestGlobal.station.name;
+        method = 'off-route';
+      }
+    }
+
+    // 4. Fallback: If not close to any station, the user is IN-TRANSIT between the current station and the next
     if (!predictedStation) {
       predictedStation = state.lastKnownStation || state.routePath[0];
-      confidence = 'low';
-      method = 'fallback';
+      method = 'in-transit';
     }
 
-    // Update state with prediction
-    if (method !== 'fallback') {
+    // Update active trip state index if we found a valid route station
+    if (method !== 'off-route' && method !== 'in-transit') {
       state.updateStation(predictedStation);
     }
 
     const nextStation = state.getNextStation();
     const stopsRemaining = state.stopsRemaining();
-    const shouldAlert = stopsRemaining <= 2 && stopsRemaining > 0;
+    
+    // Ensure we trigger alerts for 2 stops, 1 stop, AND 0 stops remaining
+    const shouldAlert = stopsRemaining <= 2;
 
-    const isOffRoute = state.routePath.indexOf(predictedStation) === -1;
+    const isOffRoute = method === 'off-route' || state.routePath.indexOf(predictedStation) === -1;
     const isWrongDirection = state.direction === 'backward';
     let warningMessage = '';
 
