@@ -158,6 +158,12 @@ export default function HomePage() {
     setDestination(dest);
   };
 
+  const swap = () => {
+    const temp = source;
+    setSource(destination);
+    setDestination(temp);
+  };
+
   const lineStatuses = [
     { name: 'Blue Line', status: 'Operational', load: 'Normal', color: '#2563EB', pct: 98 },
     { name: 'Yellow Line', status: 'Operational', load: 'High Density', color: '#EAB308', pct: 85 },
