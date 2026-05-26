@@ -15,6 +15,12 @@ export function useGPSTracking() {
   const { state, dispatch, sendGpsUpdate } = useMetro();
   const watchIdRef  = useRef(null);
   const lastSentRef = useRef(0);
+  
+  // Use a mutable ref to store the latest tripId to prevent stale closure bugs
+  const tripIdRef = useRef(state.tripId);
+  useEffect(() => {
+    tripIdRef.current = state.tripId;
+  }, [state.tripId]);
 
   const startTracking = useCallback(() => {
     if (!navigator.geolocation) {
@@ -33,11 +39,12 @@ export function useGPSTracking() {
         if (now - lastSentRef.current >= SEND_INTERVAL_MS) {
           lastSentRef.current = now;
 
+          const activeTripId = tripIdRef.current;
           // Send via REST
-          if (state.tripId) {
-            metroAPI.updateLocation({ tripId: state.tripId, lat, lng, accuracy }).catch(() => {});
+          if (activeTripId) {
+            metroAPI.updateLocation({ tripId: activeTripId, lat, lng, accuracy }).catch(() => {});
             // Also send via socket for lower latency
-            sendGpsUpdate(state.tripId, lat, lng, accuracy);
+            sendGpsUpdate(activeTripId, lat, lng, accuracy);
           }
         }
       },
@@ -48,7 +55,7 @@ export function useGPSTracking() {
         maximumAge: 5000,
       }
     );
-  }, [state.tripId, dispatch, sendGpsUpdate]);
+  }, [dispatch, sendGpsUpdate]);
 
   const stopTracking = useCallback(() => {
     if (watchIdRef.current != null) {

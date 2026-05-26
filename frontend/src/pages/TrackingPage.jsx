@@ -157,7 +157,7 @@ export default function TrackingPage() {
         }
       }
     }
-  }, [prediction?.stopsRemaining, destinationName]);
+  }, [prediction?.stopsRemaining, prediction?.nextStation, destinationName, state.tripId, stopTracking, notify]);
 
   const handleEndTrip = async () => {
     stopTracking();
