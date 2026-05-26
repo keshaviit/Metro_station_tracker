@@ -315,6 +315,7 @@ export default function TrackingPage() {
   const { permission, requestPermission, notify, lastInAppAlert, dismissInAppAlert } = useNotification();
   const [allStations, setAllStations] = useState([]);
   const [recalculating, setRecalculating] = useState(false);
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
 
   // ── Looping Alarm State ─────────────────────────────────────────────────────
   const [activeAlarm, setActiveAlarm] = useState(null); // 'next-to-next' | 'next' | 'arrived' | null
@@ -681,8 +682,8 @@ export default function TrackingPage() {
 
       {/* Bottom Tracking Panel */}
       <div className="bg-metro-dark border-t border-metro-border p-4 pb-28 space-y-3 overflow-y-auto" style={{ maxHeight: '45vh' }}>
-        {/* Explicit Notification Permission banner if not granted */}
-        {permission !== 'granted' && (
+        {/* Explicit Notification Permission banner if not granted & audio not unlocked */}
+        {(permission !== 'granted' && !audioUnlocked) && (
           <div className="bg-violet-500/10 border border-violet-500/30 rounded-xl px-4 py-3 flex items-center gap-3 animate-fade-in">
             <div className="p-2 bg-violet-500/20 rounded-lg text-violet-400">
               🔔
@@ -693,10 +694,16 @@ export default function TrackingPage() {
             </div>
             <button
               onClick={async () => {
+                // ALWAYS play the chime immediately to unlock the Safari AudioContext
+                // (requires synchronous user interaction)
+                playMetroChime();
+                setAudioUnlocked(true);
+
                 const res = await requestPermission();
                 if (res === 'granted') {
-                  playMetroChime();
                   notify('🚇 Alerts Activated!', 'You will now receive notifications for this trip.');
+                } else if (res === 'unsupported') {
+                  notify('🔊 Audio Enabled', 'Push notifications unsupported on this browser, but audio alarms are now enabled!');
                 }
               }}
               className="px-3 py-1.5 text-[10px] bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-lg transition-colors flex-shrink-0"

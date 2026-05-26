@@ -13,9 +13,9 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 export function useNotification() {
   const [permission, setPermission] = useState(() => {
     try {
-      return 'Notification' in window ? Notification.permission : 'denied';
+      return 'Notification' in window ? Notification.permission : 'unsupported';
     } catch {
-      return 'denied';
+      return 'unsupported';
     }
   });
 
@@ -36,8 +36,8 @@ export function useNotification() {
 
   const requestPermission = useCallback(async () => {
     if (!('Notification' in window)) {
-      console.warn('[useNotification] Notification API not available (likely insecure context).');
-      return 'denied';
+      console.warn('[useNotification] Notification API not available (likely iOS Safari or insecure context).');
+      return 'unsupported';
     }
     try {
       const result = await Notification.requestPermission();
