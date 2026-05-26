@@ -44,11 +44,23 @@ self.addEventListener('fetch', (event) => {
 
   // Static: cache first
   event.respondWith(
-    caches.match(request).then((cached) => cached || fetch(request).then((res) => {
-      const clone = res.clone();
-      caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-      return res;
-    }))
+    caches.match(request).then((cached) => {
+      if (cached) return cached;
+      return fetch(request)
+        .then((res) => {
+          // Only cache valid basic responses
+          if (!res || res.status !== 200 || res.type !== 'basic') {
+            return res;
+          }
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          return res;
+        })
+        .catch((err) => {
+          // Fail gracefully to prevent uncaught promise errors in console
+          return new Response('Asset unavailable', { status: 404, statusText: 'Not Found' });
+        });
+    })
   );
 });
 
