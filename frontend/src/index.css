@@ -18,8 +18,12 @@ html, body, #root {
 
 body {
   font-family: 'Inter', system-ui, sans-serif;
-  background-color: #0F1117;
-  color: #E2E8F0;
+  background-color: #0A0B10; /* Deeper cosmic black */
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.03) 0%, transparent 50%);
+  background-attachment: fixed;
+  color: #F8FAFC;
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
 }
@@ -30,13 +34,60 @@ body {
 ::-webkit-scrollbar-thumb { background: #3B3F52; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #6366F1; }
 
-/* ── Glass Card ─────────────────────────────────────────────── */
+/* ── Antigravity Tech Grid ──────────────────────────────────── */
+.tech-grid {
+  position: absolute;
+  inset: 0;
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Light Leaks (Ambient Glows) ────────────────────────────── */
+.light-leak-violet {
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, rgba(139, 92, 246, 0) 70%);
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.light-leak-cyan {
+  position: absolute;
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.12) 0%, rgba(6, 182, 212, 0) 70%);
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Floating Glass Card ────────────────────────────────────── */
 .glass-card {
-  background: rgba(26, 29, 39, 0.8);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 16px;
+  background: rgba(18, 20, 28, 0.5); /* More translucent */
+  backdrop-filter: blur(24px); /* Stronger blur for ethereal feel */
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-top: 1px solid rgba(255, 255, 255, 0.08); /* Subtle top light catch */
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.01);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-card-glow::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border-radius: 20px;
+  box-shadow: inset 0 0 20px rgba(139, 92, 246, 0.1);
+  pointer-events: none;
 }
 
 /* ── Metro Line Badges ──────────────────────────────────────── */
@@ -69,10 +120,18 @@ body {
 
 /* ── Leaflet Map ─────────────────────────────────────────────── */
 .leaflet-container {
-  background: #0F1117 !important;
-  border-radius: 12px;
+  background: #0A0B10 !important; /* Deeper black */
+  border-radius: 20px;
 }
-.leaflet-tile { filter: brightness(0.6) saturate(1.2); }
+.leaflet-tile { 
+  filter: brightness(0.35) contrast(1.4) grayscale(0.8) hue-rotate(240deg) saturate(0.5); 
+}
+
+/* Make SVG polylines glow */
+.leaflet-overlay-pane svg path {
+  filter: drop-shadow(0 0 6px currentcolor) drop-shadow(0 0 12px currentcolor);
+  opacity: 0.9;
+}
 
 /* ── Station Dot on Map ─────────────────────────────────────── */
 .station-marker {
@@ -135,9 +194,11 @@ body {
   left: 0;
   right: 0;
   z-index: 1000;
-  background: rgba(15, 17, 23, 0.95);
-  backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(255,255,255,0.06);
+  background: rgba(10, 11, 16, 0.85); /* Darker, higher blur */
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 

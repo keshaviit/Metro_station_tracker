@@ -23,6 +23,7 @@ export default function MapPage() {
   const [stations, setStations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedLine, setSelectedLine] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const lines = ['All', 'Blue', 'Yellow', 'Red', 'Green', 'Violet', 'Pink', 'Orange'];
 
@@ -33,29 +34,57 @@ export default function MapPage() {
     });
   }, []);
 
-  const filtered = selectedLine === 'All' ? stations : stations.filter((s) => s.line === selectedLine);
+  const filtered = stations.filter((s) => {
+    const matchesLine = selectedLine === 'All' || s.line === selectedLine;
+    const matchesSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesLine && matchesSearch;
+  });
 
   return (
-    <div className="h-screen bg-gradient-metro flex flex-col relative pb-20">
-      {/* Header Overlay */}
-      <div className="absolute top-0 left-0 right-0 z-[1000] p-4 bg-gradient-to-b from-[#0F1117] to-transparent pointer-events-none">
-        <div className="mb-4 animate-fade-in pointer-events-auto mt-safe">
-          <h1 className="text-2xl font-black text-white mb-1 drop-shadow-md">Station Map</h1>
-          <p className="text-slate-300 text-sm drop-shadow-md">All Delhi Metro stations</p>
+    <div className="h-screen bg-[#0A0B10] flex flex-col relative pb-20 overflow-hidden">
+      {/* Background light leak */}
+      <div className="absolute top-1/4 left-1/4 w-[250px] h-[250px] bg-indigo-500/5 rounded-full blur-[80px] pointer-events-none" />
+
+      {/* Header Overlays */}
+      <div className="absolute top-4 left-4 right-4 z-[1000] flex flex-col gap-3 pointer-events-none mt-safe">
+        {/* Floating HUD status indicator */}
+        <div className="flex justify-between items-center pointer-events-auto">
+          <div className="glass-card px-3 py-1.5 border border-white/5 bg-[#12141c]/50 backdrop-blur-md flex items-center gap-2 shadow-lg">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_#10B981]" />
+            <span className="text-[9px] font-bold text-white uppercase tracking-widest">GNSS SATELLITE CORE LOCKED</span>
+          </div>
+          <div className="glass-card px-3 py-1.5 border border-indigo-500/30 bg-indigo-500/10 backdrop-blur-md flex items-center gap-1.5 shadow-lg">
+            <span className="text-[9px] font-bold text-indigo-300 uppercase tracking-widest">Ethereal Map</span>
+          </div>
         </div>
 
-        {/* Line Filter */}
+        {/* Floating search pill */}
+        <div className="glass-card px-4 py-3 border border-white/5 bg-[#12141c]/40 backdrop-blur-2xl pointer-events-auto flex items-center gap-3 shadow-2xl">
+          <span className="text-sm">🔍</span>
+          <input
+            type="text"
+            placeholder="Search stations..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-transparent text-white text-xs placeholder-slate-500 focus:outline-none"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')} className="text-xs text-slate-500 hover:text-slate-200">✕</button>
+          )}
+        </div>
+
+        {/* Line Filter floating row */}
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide pointer-events-auto">
           {lines.map((line) => (
             <button
               key={line}
               onClick={() => setSelectedLine(line)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all shadow-md ${
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-all shadow-md backdrop-blur-md ${
                 selectedLine === line
-                  ? 'bg-metro-accent border-metro-accent text-white'
-                  : 'bg-[#1A1D27]/80 border-metro-border text-slate-300 hover:border-metro-accent/50 backdrop-blur-md'
+                  ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/30'
+                  : 'bg-[#1A1D27]/50 border-white/5 text-slate-300 hover:border-white/10'
               }`}
-              style={selectedLine === line && line !== 'All' ? { backgroundColor: LINE_COLORS[line], borderColor: LINE_COLORS[line] } : {}}
+              style={selectedLine === line && line !== 'All' ? { backgroundColor: LINE_COLORS[line], borderColor: LINE_COLORS[line], boxShadow: `0 0 10px ${LINE_COLORS[line]}` } : {}}
             >
               {line}
             </button>

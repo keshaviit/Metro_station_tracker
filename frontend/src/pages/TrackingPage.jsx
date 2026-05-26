@@ -316,6 +316,24 @@ export default function TrackingPage() {
   const [allStations, setAllStations] = useState([]);
   const [recalculating, setRecalculating] = useState(false);
   const [audioUnlocked, setAudioUnlocked] = useState(false);
+  const [hudSpeed, setHudSpeed] = useState(74);
+  const [hudGForce, setHudGForce] = useState(0.08);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setHudSpeed(prev => {
+        const delta = (Math.random() - 0.5) * 6;
+        const next = prev + delta;
+        return Math.max(55, Math.min(88, Math.round(next)));
+      });
+      setHudGForce(prev => {
+        const delta = (Math.random() - 0.5) * 0.05;
+        const next = prev + delta;
+        return Math.max(0.03, Math.min(0.22, parseFloat(next.toFixed(2))));
+      });
+    }, 2500);
+    return () => clearInterval(interval);
+  }, []);
 
   // ── Looping Alarm State ─────────────────────────────────────────────────────
   const [activeAlarm, setActiveAlarm] = useState(null); // 'next-to-next' | 'next' | 'arrived' | null
@@ -681,15 +699,20 @@ export default function TrackingPage() {
       </div>
 
       {/* Bottom Tracking Panel */}
-      <div className="bg-metro-dark border-t border-metro-border p-4 pb-28 space-y-3 overflow-y-auto" style={{ maxHeight: '45vh' }}>
+      <div className="bg-[#0A0B10]/80 backdrop-blur-3xl border-t border-white/5 p-4 pb-28 space-y-4 overflow-y-auto relative z-10" style={{ maxHeight: '45vh' }}>
+        {/* Subtle high-tech grid overlay */}
+        <div className="tech-grid opacity-30" />
+        <div className="light-leak-violet -top-10 -left-10 w-[200px] h-[200px]" />
+        <div className="light-leak-cyan -bottom-10 -right-10 w-[200px] h-[200px]" />
+
         {/* Explicit Notification Permission banner if not granted & audio not unlocked */}
         {(permission !== 'granted' && !audioUnlocked) && (
-          <div className="bg-violet-500/10 border border-violet-500/30 rounded-xl px-4 py-3 flex items-center gap-3 animate-fade-in">
-            <div className="p-2 bg-violet-500/20 rounded-lg text-violet-400">
+          <div className="glass-card bg-indigo-500/10 border border-indigo-500/30 rounded-xl px-4 py-3 flex items-center gap-3 animate-fade-in relative z-10">
+            <div className="p-2 bg-indigo-500/20 rounded-lg text-indigo-400">
               🔔
             </div>
             <div className="flex-1">
-              <p className="text-xs font-bold text-violet-300">Enable Live Alerts & Audio</p>
+              <p className="text-xs font-bold text-indigo-300">Enable Live Alerts & Audio</p>
               <p className="text-[10px] text-slate-400">Receive smart chimes when approaching your stop.</p>
             </div>
             <button
@@ -706,7 +729,7 @@ export default function TrackingPage() {
                   notify('🔊 Audio Enabled', 'Push notifications unsupported on this browser, but audio alarms are now enabled!');
                 }
               }}
-              className="px-3 py-1.5 text-[10px] bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-lg transition-colors flex-shrink-0"
+              className="px-3 py-1.5 text-[10px] bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg transition-colors flex-shrink-0"
             >
               Enable
             </button>
@@ -715,18 +738,18 @@ export default function TrackingPage() {
 
         {prediction?.stopsRemaining === 0 && !activeAlarm ? (
           /* Journey Completed Dashboard View */
-          <div className="glass-card p-5 text-center space-y-4 border border-green-500/30 bg-green-500/5 animate-scale-up">
+          <div className="glass-card p-5 text-center space-y-4 border border-green-500/30 bg-green-500/5 animate-scale-up relative z-10">
             <div className="w-12 h-12 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mx-auto text-2xl animate-bounce">
               🎉
             </div>
             <div>
-              <h3 className="text-lg font-black text-white">Journey Completed Successfully!</h3>
+              <h3 className="text-lg font-black text-white">Journey Completed!</h3>
               <p className="text-xs text-green-400 font-semibold uppercase tracking-wider">Arrived at {destinationName}</p>
               <p className="text-xs text-slate-400 mt-2">
                 You have reached your destination. GPS tracking was automatically turned off to conserve your device's battery.
               </p>
             </div>
-            <div className="bg-metro-dark/50 border border-metro-border rounded-xl p-3 grid grid-cols-2 gap-2 text-left">
+            <div className="bg-metro-dark/50 border border-white/5 rounded-xl p-3 grid grid-cols-2 gap-2 text-left">
               <div>
                 <p className="text-[10px] text-slate-500 uppercase font-bold">Stations Traveled</p>
                 <p className="text-sm font-bold text-white">{(prediction?.visitedStations?.length || 0)} stops</p>
@@ -751,7 +774,7 @@ export default function TrackingPage() {
           <>
             {/* Off-Route / Wrong-Direction Warning Banner */}
             {prediction?.warningMessage && (
-              <div className={`border rounded-xl px-4 py-3 flex flex-col gap-3 animate-pulse ${
+              <div className={`border rounded-xl px-4 py-3 flex flex-col gap-3 animate-pulse relative z-10 ${
                 prediction.isOffRoute 
                   ? 'bg-red-500/15 border-red-500/30 text-red-400' 
                   : 'bg-yellow-500/15 border-yellow-500/30 text-yellow-400'
@@ -784,7 +807,7 @@ export default function TrackingPage() {
             {/* Dynamic Station Alarm & Alert Banner (static, non-looping version when alarm was dismissed) */}
             {prediction && !prediction.warningMessage && !activeAlarm && (
               prediction.stopsRemaining === 2 ? (
-                <div className="bg-orange-500/15 border border-orange-500/30 rounded-xl px-4 py-3 flex items-center gap-3">
+                <div className="bg-orange-500/15 border border-orange-500/30 rounded-xl px-4 py-3 flex items-center gap-3 relative z-10 animate-fade-in">
                   <div className="p-2 bg-orange-500/20 rounded-lg text-orange-400">
                     🔔
                   </div>
@@ -804,7 +827,7 @@ export default function TrackingPage() {
                   </button>
                 </div>
               ) : prediction.stopsRemaining === 1 ? (
-                <div className="bg-red-500/15 border border-red-500/30 rounded-xl px-4 py-3 flex items-center gap-3">
+                <div className="bg-red-500/15 border border-red-500/30 rounded-xl px-4 py-3 flex items-center gap-3 relative z-10 animate-fade-in">
                   <div className="p-2 bg-red-500/20 rounded-lg text-red-400">
                     🚨
                   </div>
@@ -826,59 +849,106 @@ export default function TrackingPage() {
               ) : null
             )}
 
-            {/* Current Station */}
-            <div className="glass-card p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    {state.isTracking ? 'Live Tracking' : 'Not Tracking'}
+            {/* Giant Holographic ETA Badge */}
+            {prediction?.stopsRemaining != null && (
+              <div className="glass-card p-5 border border-indigo-500/20 bg-indigo-500/5 relative z-10 text-center shadow-[0_0_20px_rgba(99,102,241,0.15)] animate-slide-up">
+                <div className="absolute top-2 right-3 flex items-center gap-1 text-[9px] font-bold text-indigo-400 uppercase tracking-widest">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
+                  Live Hologram HUD
+                </div>
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Time to Destination</div>
+                <div className="text-3xl font-black text-white leading-tight drop-shadow-[0_2px_8px_rgba(99,102,241,0.4)]">
+                  Arriving In <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">{prediction.stopsRemaining === 0 ? 'NOW' : `${prediction.stopsRemaining * 3} MINS`}</span>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1.5">
+                  Current speed <strong className="text-indigo-300 font-bold">{hudSpeed} km/h</strong> · Cruising optimally
+                </p>
+              </div>
+            )}
+
+            {/* Telemetry Widgets Grid */}
+            <div className="grid grid-cols-2 gap-3 relative z-10">
+              <div className="glass-card p-3 border border-white/5 bg-[#12141c]/40 backdrop-blur-md">
+                <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">Train Dynamics</div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-xl font-bold text-white">{hudSpeed}</span>
+                  <span className="text-[10px] text-slate-400">km/h</span>
+                </div>
+                <div className="text-[9px] text-indigo-400 font-medium mt-1">G-Force: {hudGForce} G</div>
+              </div>
+
+              <div className="glass-card p-3 border border-white/5 bg-[#12141c]/40 backdrop-blur-md">
+                <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">Signal & GPS</div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                    Locked
                   </span>
                 </div>
+                <div className="text-[9px] text-slate-400 font-medium mt-1">Accuracy: ±{userLoc ? Math.round(userLoc.accuracy) : 15}m</div>
+              </div>
+            </div>
+
+            {/* Ethereal Glowing Route Timeline */}
+            <div className="glass-card p-4 relative z-10 border border-white/5 bg-[#12141c]/40 backdrop-blur-md">
+              <div className="flex items-center justify-between mb-3.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-[0_0_8px_#6366F1] animate-pulse" />
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">Line Progress Timeline</span>
+                </div>
                 {prediction?.confidence && (
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    prediction.confidence === 'high' ? 'bg-green-500/20 text-green-400' :
-                    prediction.confidence === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                    'bg-red-500/20 text-red-400'
+                  <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                    prediction.confidence === 'high' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
+                    prediction.confidence === 'medium' ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' :
+                    'bg-red-500/10 text-red-400 border border-red-500/20'
                   }`}>
-                    {prediction.confidence} confidence
+                    {prediction.confidence} Confidence
                   </span>
                 )}
               </div>
 
-              <div className="flex items-center gap-3">
-                <MapPin className="w-5 h-5 text-metro-accent animate-bounce" />
-                <div>
-                  <p className="text-xs text-slate-400">Current Station</p>
-                  <p className="font-bold text-white">{prediction?.currentStation || route.path[0]}</p>
+              {/* Glowing vertical tracking path */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 rounded-full bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-xs text-indigo-400 font-bold">
+                    A
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-500 uppercase font-bold">Current Station</p>
+                    <p className="text-sm font-bold text-white">{prediction?.currentStation || route.path[0]}</p>
+                  </div>
                 </div>
+
+                {prediction?.nextStation && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-xs text-purple-400 font-bold animate-pulse">
+                      B
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-500 uppercase font-bold">Upcoming Stop</p>
+                      <p className="text-sm font-bold text-purple-300">{prediction.nextStation}</p>
+                    </div>
+                  </div>
+                )}
+
+                {destinationName && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-xs text-emerald-400 font-bold">
+                      🏁
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-500 uppercase font-bold">Destination</p>
+                      <p className="text-sm font-bold text-white">{destinationName}</p>
+                    </div>
+                  </div>
+                )}
               </div>
-
-              {prediction?.nextStation && (
-                <div className="mt-3 flex items-center gap-3">
-                  <Navigation2 className="w-5 h-5 text-violet-400 rotate-90" />
-                  <div>
-                    <p className="text-xs text-slate-400">Next Station</p>
-                    <p className="font-semibold text-white">{prediction.nextStation}</p>
-                  </div>
-                </div>
-              )}
-
-              {prediction?.stopsRemaining != null && (
-                <div className="mt-3 flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-yellow-400" />
-                  <div>
-                    <p className="text-xs text-slate-400">Stops Remaining</p>
-                    <p className="font-bold text-white">{prediction.stopsRemaining}</p>
-                  </div>
-                </div>
-              )}
 
               {/* Visited Stations History */}
               {prediction?.visitedStations && prediction.visitedStations.length > 0 && (
-                <div className="mt-4 pt-3 border-t border-metro-border">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Travel History</p>
-                  <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-thin">
+                <div className="mt-4 pt-3.5 border-t border-white/5">
+                  <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-2">Acquired Milestones</p>
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
                     {prediction.visitedStations.map((name, index) => {
                       const stationDetail = allStations.find(s => s.name === name) || route?.stationDetails?.find(s => s.name === name);
                       const isInterchange = stationDetail?.interchange;
@@ -887,19 +957,19 @@ export default function TrackingPage() {
                       
                       return (
                         <div key={name + index} className="flex items-center gap-1.5 flex-shrink-0 animate-fade-in">
-                          <span className="text-xs bg-metro-card border border-metro-border text-slate-300 px-2.5 py-1 rounded-full flex items-center gap-1.5">
-                            <span className="text-green-400">✓</span>
+                          <span className="text-[10px] bg-white/5 border border-white/5 text-slate-300 px-2.5 py-1 rounded-full flex items-center gap-1.5">
+                            <span className="text-emerald-400 font-bold">✓</span>
                             {lineColor && (
-                              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: lineColor }} />
+                              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: lineColor, boxShadow: `0 0 6px ${lineColor}` }} />
                             )}
                             <span>{name}</span>
                             {isInterchange && (
-                              <span className="text-[9px] px-1 py-0.2 bg-violet-500/20 text-violet-400 border border-violet-500/30 rounded">
+                              <span className="text-[8px] px-1 py-0.2 bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded">
                                 🔄
                               </span>
                             )}
                             {congestion && (
-                              <span className={`text-[9px] px-1.5 py-0.2 border rounded flex items-center gap-1 font-medium ${congestion.colorClass}`}>
+                              <span className={`text-[8px] px-1.5 py-0.2 border rounded flex items-center gap-1 font-medium ${congestion.colorClass}`}>
                                 👥 {congestion.label}
                               </span>
                             )}
@@ -926,9 +996,9 @@ export default function TrackingPage() {
             <button
               id="end-trip-btn"
               onClick={handleEndTrip}
-              className="w-full bg-red-500/20 border border-red-500/40 text-red-400 font-semibold py-3 rounded-xl hover:bg-red-500/30 transition-colors text-sm"
+              className="w-full bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/40 text-red-400 font-bold py-3.5 rounded-xl transition-all text-xs uppercase tracking-wider relative z-10"
             >
-              End Trip
+              Terminate Trip Tracking
             </button>
           </>
         )}

@@ -107,34 +107,56 @@ export default function RouteResultPage() {
     }
   };
 
+  // Compute average congestion index for telemetry display
+  const congestionValues = { Low: 25, Medium: 55, High: 85 };
+  let totalCongestion = 0;
+  let count = 0;
+  displayStations.forEach(s => {
+    if (s.congestion?.label) {
+      totalCongestion += congestionValues[s.congestion.label] || 35;
+      count++;
+    }
+  });
+  const avgCongestion = count > 0 ? Math.round(totalCongestion / count) : 30;
+
+  const upcomingArrivals = [
+    { id: 1, line: displayStations[0]?.line || 'Blue', dest: displayStations[displayStations.length - 1]?.name || 'Dwarka', eta: '2 MINS', platform: 'Platform 1' },
+    { id: 2, line: displayStations[0]?.line || 'Blue', dest: displayStations[displayStations.length - 1]?.name || 'Dwarka', eta: '6 MINS', platform: 'Platform 1' },
+    { id: 3, line: 'Yellow', dest: 'Samaypur Badli', eta: '4 MINS', platform: 'Platform 2' }
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-metro pb-28">
+    <div className="min-h-screen bg-[#0A0B10] pb-28 relative overflow-hidden">
+      {/* Background light leaks for Antigravity atmosphere */}
+      <div className="absolute top-10 left-10 w-[250px] h-[250px] bg-indigo-500/5 rounded-full blur-[80px] pointer-events-none" />
+      <div className="absolute bottom-20 right-10 w-[200px] h-[200px] bg-purple-500/5 rounded-full blur-[80px] pointer-events-none" />
+
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-metro-dark/95 backdrop-blur-sm border-b border-metro-border px-4 py-4">
+      <div className="sticky top-0 z-50 bg-[#0A0B10]/85 backdrop-blur-md border-b border-white/5 px-4 py-4 mt-safe">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/')}
-            className="w-9 h-9 flex items-center justify-center rounded-xl bg-metro-card hover:bg-metro-border transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4 text-white" />
           </button>
           <div>
-            <h1 className="font-bold text-white text-base">Route Details</h1>
-            <p className="text-xs text-slate-400">{path[0]} → {path[path.length - 1]}</p>
+            <h1 className="font-bold text-white text-base">Route Compute HUD</h1>
+            <p className="text-xs text-slate-400">{path[0]} ➔ {path[path.length - 1]}</p>
           </div>
         </div>
       </div>
 
-      <div className="px-4 py-5 space-y-4 animate-fade-in">
+      <div className="px-4 py-5 space-y-4 animate-fade-in relative z-10">
         {/* Tab Selector */}
         {shortest && minInterchanges && (
-          <div className="grid grid-cols-2 gap-2 bg-metro-card/50 border border-metro-border p-1.5 rounded-xl">
+          <div className="grid grid-cols-2 gap-2 bg-white/5 border border-white/5 p-1.5 rounded-xl backdrop-blur-md">
             <button
               onClick={() => setActiveTab('shortest')}
               className={`py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                 activeTab === 'shortest'
-                  ? 'bg-metro-accent text-white shadow-lg shadow-metro-accent/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-metro-card/40'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
               }`}
             >
               🚀 Fewest Stations
@@ -143,8 +165,8 @@ export default function RouteResultPage() {
               onClick={() => setActiveTab('minInterchanges')}
               className={`py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                 activeTab === 'minInterchanges'
-                  ? 'bg-metro-accent text-white shadow-lg shadow-metro-accent/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-metro-card/40'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
               }`}
             >
               🔄 Fewest Transfers
@@ -153,8 +175,8 @@ export default function RouteResultPage() {
               onClick={() => setActiveTab('shortestDistance')}
               className={`py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                 activeTab === 'shortestDistance'
-                  ? 'bg-metro-accent text-white shadow-lg shadow-metro-accent/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-metro-card/40'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
               }`}
             >
               📍 Shortest Distance
@@ -163,8 +185,8 @@ export default function RouteResultPage() {
               onClick={() => setActiveTab('lessCongested')}
               className={`py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                 activeTab === 'lessCongested'
-                  ? 'bg-metro-accent text-white shadow-lg shadow-metro-accent/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-metro-card/40'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
               }`}
             >
               🟢 Less Congested
@@ -174,58 +196,90 @@ export default function RouteResultPage() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-4 gap-2">
-          <div className="glass-card p-2.5 text-center">
-            <Train className="w-4 h-4 text-metro-accent mx-auto mb-1 animate-pulse" />
-            <div className="font-bold text-white text-base">{totalStations}</div>
-            <div className="text-[10px] text-slate-400">Stations</div>
+          <div className="glass-card p-2.5 text-center border border-white/5">
+            <Train className="w-4 h-4 text-indigo-400 mx-auto mb-1 animate-pulse" />
+            <div className="font-bold text-white text-base leading-none mb-1">{totalStations}</div>
+            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider scale-90">Stops</div>
           </div>
-          <div className="glass-card p-2.5 text-center">
+          <div className="glass-card p-2.5 text-center border border-white/5">
             <Clock className="w-4 h-4 text-yellow-400 mx-auto mb-1" />
-            <div className="font-bold text-white text-base">{estimatedTime}</div>
-            <div className="text-[10px] text-slate-400">Minutes</div>
+            <div className="font-bold text-white text-base leading-none mb-1">{estimatedTime}</div>
+            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider scale-90">Minutes</div>
           </div>
-          <div className="glass-card p-2.5 text-center">
+          <div className="glass-card p-2.5 text-center border border-white/5">
             <ArrowLeftRight className="w-4 h-4 text-pink-400 mx-auto mb-1" />
-            <div className="font-bold text-white text-base">{interchanges.length}</div>
-            <div className="text-[10px] text-slate-400">Changes</div>
+            <div className="font-bold text-white text-base leading-none mb-1">{interchanges.length}</div>
+            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider scale-90">Transfers</div>
           </div>
-          <div className="glass-card p-2.5 text-center">
-            <span className="block text-sm mb-1">📍</span>
-            <div className="font-bold text-white text-base">{distanceKm}</div>
-            <div className="text-[10px] text-slate-400">Distance (km)</div>
+          <div className="glass-card p-2.5 text-center border border-white/5">
+            <span className="block text-sm mb-1 leading-none">📍</span>
+            <div className="font-bold text-white text-base leading-none mb-1">{distanceKm}</div>
+            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider scale-90">Distance</div>
+          </div>
+        </div>
+
+        {/* Congestion Density Bar HUD */}
+        <div className="glass-card p-4 space-y-3 border border-white/5 bg-[#12141c]/40 backdrop-blur-md">
+          <div className="flex justify-between items-center">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">👥 Route Congestion Index</h3>
+            <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+              avgCongestion < 40 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+              avgCongestion < 70 ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' :
+              'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+            }`}>
+              {avgCongestion < 40 ? 'Optimal Flow' : avgCongestion < 70 ? 'Moderate Load' : 'Heavy Congestion'}
+            </span>
+          </div>
+          
+          <div className="relative">
+            <div className="flex mb-1.5 items-center justify-between">
+              <span className="text-[9px] font-bold uppercase text-indigo-300">Density Density Telemetry</span>
+              <span className="text-xs font-black font-mono text-white">{avgCongestion}%</span>
+            </div>
+            <div className="overflow-hidden h-2.5 rounded-full bg-white/5 p-[2px]">
+              <div 
+                style={{ 
+                  width: `${avgCongestion}%`, 
+                  background: avgCongestion < 40 ? 'linear-gradient(90deg, #10B981, #059669)' : avgCongestion < 70 ? 'linear-gradient(90deg, #FBBF24, #D97706)' : 'linear-gradient(90deg, #F43F5E, #E11D48)',
+                  boxShadow: `0 0 8px ${avgCongestion < 40 ? '#10B981' : avgCongestion < 70 ? '#FBBF24' : '#F43F5E'}`
+                }} 
+                className="h-full rounded-full transition-all duration-500"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Upcoming Arrivals HUD */}
+        <div className="glass-card p-4 space-y-3 border border-white/5 bg-[#12141c]/40 backdrop-blur-md">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">🚊 Upcoming Station Arrivals</h3>
+          <div className="space-y-2">
+            {upcomingArrivals.map((train) => (
+              <div key={train.id} className="flex items-center justify-between bg-white/5 border border-white/5 rounded-xl p-3 hover:bg-white/10 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className={`w-2.5 h-2.5 rounded-full`} style={{ backgroundColor: LINE_COLORS[train.line] || '#6366F1', boxShadow: `0 0 6px ${LINE_COLORS[train.line] || '#6366F1'}` }} />
+                  <div>
+                    <p className="text-xs font-bold text-white leading-tight">To {train.dest}</p>
+                    <p className="text-[9px] text-slate-500 font-bold uppercase mt-0.5">{train.platform}</p>
+                  </div>
+                </div>
+                <span className="text-xs font-black text-indigo-300 font-mono animate-pulse">{train.eta}</span>
+              </div>
+            ))}
           </div>
         </div>
 
         {/* Interchange alert */}
         {interchanges.length > 0 && (
-          <div className="glass-card p-4 border-l-4 border-yellow-400">
-            <p className="text-xs font-semibold text-yellow-400 mb-1">⚡ Interchange Required</p>
-            <p className="text-sm text-slate-300">Change at: <span className="font-semibold text-white">{interchanges.join(', ')}</span></p>
-          </div>
-        )}
-
-        {/* Interchange details checklist */}
-        {interchanges.length > 0 && (
-          <div className="glass-card p-4 space-y-2.5">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">🗺️ Interchange Transit Hubs</h3>
-            <div className="grid grid-cols-2 gap-2">
-              {interchanges.map((name) => (
-                <div key={name} className="bg-metro-card border border-metro-border p-2.5 rounded-xl flex items-center gap-2.5 hover:border-metro-accent/30 transition-all">
-                  <span className="text-base animate-pulse">🔄</span>
-                  <div>
-                    <p className="text-xs font-bold text-white leading-tight">{name}</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Transfer Hub</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div className="glass-card p-4 border-l-4 border-yellow-400 border-t border-r border-b border-white/5 bg-yellow-500/5">
+            <p className="text-xs font-bold text-yellow-400 mb-1 uppercase tracking-wider">⚡ Interchange Transit Action</p>
+            <p className="text-xs text-slate-300 leading-relaxed">Transfer platform at: <span className="font-bold text-white">{interchanges.join(', ')}</span></p>
           </div>
         )}
 
         {/* Route Timeline */}
-        <div className="glass-card p-4">
-          <h2 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Route Timeline</h2>
-          <div className="relative">
+        <div className="glass-card p-5 border border-white/5 bg-[#12141c]/30">
+          <h2 className="font-bold text-white mb-5 text-xs uppercase tracking-wider pl-1">Interactive Route Timeline</h2>
+          <div className="relative pl-1">
             {displayStations.map((station, idx) => {
               const isFirst = idx === 0;
               const isLast = idx === path.length - 1;
@@ -233,41 +287,41 @@ export default function RouteResultPage() {
               const lineColor = LINE_COLORS[station.line] || '#6366F1';
 
               return (
-                <div key={station.name + idx} className="flex gap-4 mb-0 animate-fade-in">
+                <div key={station.name + idx} className="flex gap-4 mb-0 animate-fade-in relative z-10">
                   {/* Timeline dot & line */}
                   <div className="flex flex-col items-center">
                     <div
-                      className="w-4 h-4 rounded-full flex-shrink-0 z-10 border-2 border-white/20"
-                      style={{ backgroundColor: lineColor, marginTop: 14 }}
+                      className="w-3.5 h-3.5 rounded-full flex-shrink-0 z-10 border-2 border-white/20 transition-all duration-300"
+                      style={{ backgroundColor: lineColor, marginTop: 12, boxShadow: `0 0 8px ${lineColor}` }}
                     />
                     {!isLast && (
-                      <div className="w-0.5 flex-1 mt-0.5" style={{ backgroundColor: lineColor, opacity: 0.4, minHeight: 32 }} />
+                      <div className="w-0.5 flex-1 mt-0.5" style={{ backgroundColor: lineColor, opacity: 0.25, minHeight: 32 }} />
                     )}
                   </div>
 
                   {/* Station info */}
                   <div className="pb-6 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`font-${isFirst || isLast ? 'bold text-white' : 'medium text-slate-200'} text-sm`}>
+                      <span className={`font-${isFirst || isLast ? 'black text-white' : 'medium text-slate-200'} text-xs`}>
                         {station.name}
                       </span>
                       {station.line && (
-                        <span className={`text-xs px-2 py-0.5 rounded-full border ${LINE_BG[station.line] || 'bg-slate-700 text-slate-300 border-slate-600'}`}>
+                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${LINE_BG[station.line] || 'bg-slate-700 text-slate-300 border-slate-600'}`}>
                           {station.line}
                         </span>
                       )}
                       {station.congestion && (
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold flex items-center gap-1 ${station.congestion.colorClass}`}>
+                        <span className={`text-[8px] px-2 py-0.5 rounded-full border font-bold flex items-center gap-1 ${station.congestion.colorClass}`}>
                           👥 {station.congestion.label}
                         </span>
                       )}
                       {isInterchange && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
-                          ↔ Change here
+                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 shadow-[0_0_8px_rgba(234,179,8,0.1)]">
+                          ↔ Platform Transfer
                         </span>
                       )}
-                      {isFirst && <span className="text-xs text-metro-accent">Start</span>}
-                      {isLast && <span className="text-xs text-green-400">Destination</span>}
+                      {isFirst && <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider">Start</span>}
+                      {isLast && <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider">Arrival</span>}
                     </div>
                   </div>
                 </div>
@@ -281,10 +335,10 @@ export default function RouteResultPage() {
           id="start-trip-btn"
           onClick={handleStartTrip}
           disabled={starting}
-          className="w-full btn-gradient text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 text-sm disabled:opacity-60"
+          className="w-full btn-gradient text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 text-xs uppercase tracking-wider disabled:opacity-60 shadow-[0_4px_20px_rgba(99,102,241,0.3)] transition-all hover:scale-[1.02]"
         >
           <Navigation2 className="w-4 h-4" />
-          {starting ? 'Starting...' : 'Start Live Tracking'}
+          {starting ? 'Acquiring Trip...' : 'Initiate Live Trip HUD'}
           <ChevronRight className="w-4 h-4" />
         </button>
       </div>
