@@ -43,9 +43,9 @@ export function useGPSTracking() {
       },
       (err) => console.error('GPS error:', err.message),
       {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 2000,
+        enableHighAccuracy: false, // Set to false for seamless desktop testing and mobile GPS support
+        timeout: 15000,
+        maximumAge: 5000,
       }
     );
   }, [state.tripId, dispatch, sendGpsUpdate]);
