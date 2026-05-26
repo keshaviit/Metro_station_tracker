@@ -19,7 +19,7 @@ const LINE_BG = {
 };
 
 export default function RouteResultPage() {
-  const { state, dispatch } = useMetro();
+  const { state, dispatch, joinTrip } = useMetro();
   const navigate = useNavigate();
   const [starting, setStarting] = useState(false);
   const [activeTab, setActiveTab] = useState('shortest'); // 'shortest' | 'minInterchanges' | 'shortestDistance' | 'lessCongested'
@@ -93,7 +93,10 @@ export default function RouteResultPage() {
     setStarting(true);
     try {
       const res = await metroAPI.startTrip({ source: path[0], destination: path[path.length - 1] });
-      dispatch({ type: 'SET_TRIP_ID', payload: res.data.tripId });
+      const tripId = res.data.tripId;
+      dispatch({ type: 'SET_TRIP_ID', payload: tripId });
+      // Join the socket room so we receive real-time prediction events from the server
+      joinTrip(tripId);
       // Set the activeRoute as the primary active route path for tracking
       dispatch({ type: 'SET_ROUTE', payload: { ...activeRoute, strategy: activeTab } });
       navigate('/track');

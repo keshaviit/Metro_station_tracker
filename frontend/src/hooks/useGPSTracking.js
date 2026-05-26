@@ -7,6 +7,8 @@ import { metroAPI } from '../services/api';
  *
  * Uses navigator.geolocation.watchPosition for continuous GPS tracking.
  * Sends location updates to backend every SEND_INTERVAL_MS milliseconds.
+ * Uses REST response to update prediction state directly (primary channel).
+ * Also sends via socket for lower latency (secondary channel).
  * Cleans up watcher on unmount.
  */
 const SEND_INTERVAL_MS = 5000;
@@ -40,10 +42,19 @@ export function useGPSTracking() {
           lastSentRef.current = now;
 
           const activeTripId = tripIdRef.current;
-          // Send via REST
           if (activeTripId) {
-            metroAPI.updateLocation({ tripId: activeTripId, lat, lng, accuracy }).catch(() => {});
-            // Also send via socket for lower latency
+            // Send via REST and USE the response to update prediction state
+            metroAPI.updateLocation({ tripId: activeTripId, lat, lng, accuracy })
+              .then((res) => {
+                // The REST response contains the prediction data — use it!
+                if (res && res.data) {
+                  dispatch({ type: 'SET_PREDICTION', payload: res.data });
+                }
+              })
+              .catch((err) => {
+                console.warn('REST location update failed:', err.message);
+              });
+            // Also send via socket for lower latency (backup channel)
             sendGpsUpdate(activeTripId, lat, lng, accuracy);
           }
         }
