@@ -9,7 +9,9 @@ import { metroAPI } from '../services/api';
  * Sends location updates to backend every SEND_INTERVAL_MS milliseconds.
  * Uses REST response to update prediction state directly (primary channel).
  * Also sends via socket for lower latency (secondary channel).
- * Cleans up watcher on unmount.
+ *
+ * Integrates Screen Wake Lock API to prevent device sleep during transit.
+ * Cleans up watcher + wake lock on unmount.
  */
 const SEND_INTERVAL_MS = 5000;
 
@@ -17,12 +19,65 @@ export function useGPSTracking() {
   const { state, dispatch, sendGpsUpdate } = useMetro();
   const watchIdRef  = useRef(null);
   const lastSentRef = useRef(0);
+  const wakeLockRef = useRef(null);
   
   // Use a mutable ref to store the latest tripId to prevent stale closure bugs
   const tripIdRef = useRef(state.tripId);
   useEffect(() => {
     tripIdRef.current = state.tripId;
   }, [state.tripId]);
+
+  /**
+   * Request a Screen Wake Lock to prevent the device from sleeping.
+   * Silently fails on unsupported browsers.
+   */
+  const requestWakeLock = useCallback(async () => {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLockRef.current = await navigator.wakeLock.request('screen');
+        console.info('[WakeLock] Screen wake lock acquired.');
+
+        // Re-acquire if released due to visibility change
+        wakeLockRef.current.addEventListener('release', () => {
+          console.info('[WakeLock] Wake lock released.');
+        });
+      } else {
+        console.info('[WakeLock] Wake Lock API not supported on this browser.');
+      }
+    } catch (err) {
+      console.warn('[WakeLock] Failed to acquire wake lock:', err.message);
+    }
+  }, []);
+
+  /**
+   * Release the Screen Wake Lock.
+   */
+  const releaseWakeLock = useCallback(async () => {
+    try {
+      if (wakeLockRef.current) {
+        await wakeLockRef.current.release();
+        wakeLockRef.current = null;
+        console.info('[WakeLock] Screen wake lock released.');
+      }
+    } catch (err) {
+      console.warn('[WakeLock] Failed to release wake lock:', err.message);
+    }
+  }, []);
+
+  /**
+   * Re-acquire wake lock when the user returns to the app/tab.
+   * The lock is automatically released when the tab becomes hidden.
+   */
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && watchIdRef.current != null) {
+        await requestWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [requestWakeLock]);
 
   const startTracking = useCallback(() => {
     if (!navigator.geolocation) {
@@ -31,6 +86,9 @@ export function useGPSTracking() {
     }
 
     dispatch({ type: 'SET_TRACKING', payload: true });
+
+    // Acquire wake lock to keep screen alive
+    requestWakeLock();
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       (position) => {
@@ -66,7 +124,7 @@ export function useGPSTracking() {
         maximumAge: 5000,
       }
     );
-  }, [dispatch, sendGpsUpdate]);
+  }, [dispatch, sendGpsUpdate, requestWakeLock]);
 
   const stopTracking = useCallback(() => {
     if (watchIdRef.current != null) {
@@ -74,13 +132,20 @@ export function useGPSTracking() {
       watchIdRef.current = null;
     }
     dispatch({ type: 'SET_TRACKING', payload: false });
-  }, [dispatch]);
+
+    // Release wake lock when tracking stops
+    releaseWakeLock();
+  }, [dispatch, releaseWakeLock]);
 
   // Auto cleanup on unmount
   useEffect(() => {
     return () => {
       if (watchIdRef.current != null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+      // Also release wake lock on unmount
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release().catch(() => {});
       }
     };
   }, []);

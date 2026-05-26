@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -7,7 +7,7 @@ import { useMetro } from '../context/MetroContext';
 import { useGPSTracking } from '../hooks/useGPSTracking';
 import { useNotification } from '../hooks/useNotification';
 import { metroAPI } from '../services/api';
-import { Navigation2, MapPin, AlertTriangle, CheckCircle2, ArrowLeft, Radio } from 'lucide-react';
+import { Navigation2, MapPin, AlertTriangle, CheckCircle2, ArrowLeft, Radio, VolumeX, Terminal, ChevronDown, ChevronUp, Play, Zap, Crosshair } from 'lucide-react';
 
 // Fix Leaflet default icon
 delete L.Icon.Default.prototype._getIconUrl;
@@ -22,18 +22,6 @@ const LINE_COLORS = {
   Green: '#22C55E', Violet: '#8B5CF6', Pink: '#EC4899', Orange: '#F97316', Magenta: '#D946EF', Grey: '#6B7280'
 };
 
-const LINE_BG = {
-  Blue: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  Yellow: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-  Red: 'bg-red-500/20 text-red-400 border-red-500/30',
-  Green: 'bg-green-500/20 text-green-400 border-green-500/30',
-  Violet: 'bg-violet-500/20 text-violet-400 border-violet-500/30',
-  Pink: 'bg-pink-500/20 text-pink-400 border-pink-500/30',
-  Orange: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-  Magenta: 'bg-magenta-500/20 text-magenta-400 border-magenta-500/30',
-  Grey: 'bg-grey-500/20 text-grey-400 border-grey-500/30',
-};
-
 function createStationIcon(color) {
   return L.divIcon({
     className: '',
@@ -43,37 +31,80 @@ function createStationIcon(color) {
   });
 }
 
-function playMetroAlarm() {
+// ── Audio Alarm Engine ──────────────────────────────────────────────────────────
+
+/**
+ * Plays a single high-fidelity triple-chime ding-dong-ding.
+ * Returns the AudioContext so it can be closed when the alarm is dismissed.
+ */
+function playMetroChime() {
   try {
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const now = audioCtx.currentTime;
-    
+
     const playTone = (freq, startTime, duration) => {
       const osc = audioCtx.createOscillator();
       const gainNode = audioCtx.createGain();
-      
+
       osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, startTime);
-      
+
       gainNode.gain.setValueAtTime(0, startTime);
-      gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.05);
+      gainNode.gain.linearRampToValueAtTime(0.35, startTime + 0.05);
       gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
-      
+
       osc.connect(gainNode);
       gainNode.connect(audioCtx.destination);
-      
+
       osc.start(startTime);
       osc.stop(startTime + duration);
     };
 
-    // Standard high-quality double-chime ding-dong/ding-ding
-    playTone(523.25, now, 0.4);        // C5
-    playTone(659.25, now + 0.15, 0.4);   // E5
-    playTone(783.99, now + 0.3, 0.6);    // G5
+    // C5 → E5 → G5 triple chime
+    playTone(523.25, now, 0.4);
+    playTone(659.25, now + 0.15, 0.4);
+    playTone(783.99, now + 0.3, 0.6);
+
+    // Auto-close after the chime finishes to free resources
+    setTimeout(() => {
+      audioCtx.close().catch(() => {});
+    }, 1200);
+
+    return audioCtx;
   } catch (err) {
     console.error('Audio chime failed:', err);
+    return null;
   }
 }
+
+/**
+ * Trigger device vibration (if supported).
+ * Falls back silently on iOS / unsupported browsers.
+ */
+function triggerVibration(pattern = [300, 100, 300, 100, 500]) {
+  try {
+    if ('vibrate' in navigator) {
+      navigator.vibrate(pattern);
+    }
+  } catch {
+    // Vibration API not supported
+  }
+}
+
+/**
+ * Cancel any ongoing vibration.
+ */
+function cancelVibration() {
+  try {
+    if ('vibrate' in navigator) {
+      navigator.vibrate(0);
+    }
+  } catch {
+    // Vibration API not supported
+  }
+}
+
+// ── Map Components ──────────────────────────────────────────────────────────────
 
 const gpsIcon = L.divIcon({
   className: '',
@@ -93,14 +124,194 @@ function MapAutoCenter({ center }) {
   return null;
 }
 
+// ── GPS Simulator Console ───────────────────────────────────────────────────────
+
+function GPSSimulatorConsole({ route, tripId, dispatch }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [simIndex, setSimIndex] = useState(0);
+  const [simAccuracy, setSimAccuracy] = useState(50);
+  const [simLog, setSimLog] = useState([]);
+
+  const stationDetails = route?.stationDetails || [];
+  const path = route?.path || [];
+
+  const addLog = (msg) => {
+    setSimLog((prev) => [...prev.slice(-8), `[${new Date().toLocaleTimeString()}] ${msg}`]);
+  };
+
+  // Simulate GPS at a specific station
+  const simulateStation = async (index) => {
+    const station = stationDetails[index];
+    if (!station || !station.lat || !station.lng || !tripId) {
+      addLog('❌ Invalid station or no active trip');
+      return;
+    }
+
+    addLog(`📍 Simulating GPS at: ${station.name} (${station.lat.toFixed(4)}, ${station.lng.toFixed(4)})`);
+
+    // Update local GPS display
+    dispatch({ type: 'SET_LOCATION', payload: { lat: station.lat, lng: station.lng, accuracy: simAccuracy } });
+
+    // Send to backend via REST
+    try {
+      const res = await metroAPI.updateLocation({
+        tripId,
+        lat: station.lat,
+        lng: station.lng,
+        accuracy: simAccuracy,
+      });
+      if (res && res.data) {
+        dispatch({ type: 'SET_PREDICTION', payload: res.data });
+        addLog(`✅ Prediction: ${res.data.currentStation} | Stops left: ${res.data.stopsRemaining} | Method: ${res.data.method}`);
+      }
+    } catch (err) {
+      addLog(`❌ REST error: ${err.message}`);
+    }
+
+    setSimIndex(index);
+  };
+
+  // Step to the next station
+  const stepNext = () => {
+    const nextIdx = Math.min(simIndex + 1, stationDetails.length - 1);
+    simulateStation(nextIdx);
+  };
+
+  // Simulate off-route GPS
+  const simulateOffRoute = async () => {
+    if (!tripId) { addLog('❌ No active trip'); return; }
+
+    // Pick a GPS coordinate that's far from the route
+    const offLat = 28.45;
+    const offLng = 77.00;
+    addLog(`🚨 Simulating OFF-ROUTE GPS at: (${offLat}, ${offLng})`);
+
+    dispatch({ type: 'SET_LOCATION', payload: { lat: offLat, lng: offLng, accuracy: simAccuracy } });
+
+    try {
+      const res = await metroAPI.updateLocation({ tripId, lat: offLat, lng: offLng, accuracy: simAccuracy });
+      if (res && res.data) {
+        dispatch({ type: 'SET_PREDICTION', payload: res.data });
+        addLog(`⚠️ Prediction: ${res.data.currentStation} | Off-route: ${res.data.isOffRoute} | Method: ${res.data.method}`);
+      }
+    } catch (err) {
+      addLog(`❌ REST error: ${err.message}`);
+    }
+  };
+
+  if (!isOpen) {
+    return (
+      <button
+        onClick={() => setIsOpen(true)}
+        className="w-full flex items-center justify-center gap-2 py-2.5 text-xs font-semibold text-slate-400 bg-metro-card border border-metro-border rounded-xl hover:bg-metro-border/60 transition-colors"
+      >
+        <Terminal className="w-3.5 h-3.5" />
+        GPS Simulator Console
+        <ChevronDown className="w-3.5 h-3.5" />
+      </button>
+    );
+  }
+
+  return (
+    <div className="glass-card p-4 space-y-3 border border-violet-500/20 animate-fade-in">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Terminal className="w-4 h-4 text-violet-400" />
+          <span className="text-xs font-bold text-white uppercase tracking-wider">GPS Simulator</span>
+        </div>
+        <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-white transition-colors">
+          <ChevronUp className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Current sim position */}
+      <div className="text-xs text-slate-400">
+        Station <strong className="text-white">{simIndex + 1}</strong> of {stationDetails.length}
+        {stationDetails[simIndex] && (
+          <span className="text-violet-400 ml-1">— {stationDetails[simIndex].name}</span>
+        )}
+      </div>
+
+      {/* Accuracy Slider */}
+      <div className="flex items-center gap-3">
+        <label className="text-[10px] text-slate-500 uppercase font-bold whitespace-nowrap">Accuracy</label>
+        <input
+          type="range"
+          min="10"
+          max="500"
+          value={simAccuracy}
+          onChange={(e) => setSimAccuracy(Number(e.target.value))}
+          className="flex-1 h-1 bg-metro-border rounded-full appearance-none cursor-pointer accent-violet-500"
+        />
+        <span className="text-xs text-violet-400 font-mono w-12 text-right">±{simAccuracy}m</span>
+      </div>
+
+      {/* Controls */}
+      <div className="grid grid-cols-3 gap-2">
+        <button
+          onClick={stepNext}
+          className="flex items-center justify-center gap-1.5 py-2 text-[11px] font-bold bg-green-500/15 border border-green-500/30 text-green-400 rounded-lg hover:bg-green-500/25 transition-colors"
+        >
+          <Play className="w-3 h-3" /> Step Next
+        </button>
+        <button
+          onClick={simulateOffRoute}
+          className="flex items-center justify-center gap-1.5 py-2 text-[11px] font-bold bg-red-500/15 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/25 transition-colors"
+        >
+          <Zap className="w-3 h-3" /> Off-Route
+        </button>
+        <button
+          onClick={() => simulateStation(0)}
+          className="flex items-center justify-center gap-1.5 py-2 text-[11px] font-bold bg-blue-500/15 border border-blue-500/30 text-blue-400 rounded-lg hover:bg-blue-500/25 transition-colors"
+        >
+          <Crosshair className="w-3 h-3" /> Reset
+        </button>
+      </div>
+
+      {/* Quick Station Jump */}
+      <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+        {stationDetails.map((s, idx) => (
+          <button
+            key={s.name + idx}
+            onClick={() => simulateStation(idx)}
+            className={`flex-shrink-0 text-[9px] px-2 py-1 rounded-full border transition-colors font-medium ${
+              idx === simIndex
+                ? 'bg-violet-500/30 border-violet-500/50 text-violet-300'
+                : 'bg-metro-card border-metro-border text-slate-400 hover:text-white hover:border-slate-500'
+            }`}
+          >
+            {idx + 1}. {s.name}
+          </button>
+        ))}
+      </div>
+
+      {/* Logs */}
+      {simLog.length > 0 && (
+        <div className="bg-metro-dark/80 border border-metro-border rounded-lg p-2 max-h-28 overflow-y-auto scrollbar-thin">
+          {simLog.map((log, i) => (
+            <p key={i} className="text-[10px] text-slate-400 font-mono leading-relaxed">{log}</p>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main TrackingPage ───────────────────────────────────────────────────────────
+
 export default function TrackingPage() {
   const { state, dispatch } = useMetro();
   const lastAlertedStopsRef = useRef(null);
   const navigate = useNavigate();
   const { startTracking, stopTracking } = useGPSTracking();
-  const { permission, requestPermission, notify } = useNotification();
+  const { permission, requestPermission, notify, lastInAppAlert, dismissInAppAlert } = useNotification();
   const [allStations, setAllStations] = useState([]);
   const [recalculating, setRecalculating] = useState(false);
+
+  // ── Looping Alarm State ─────────────────────────────────────────────────────
+  const [activeAlarm, setActiveAlarm] = useState(null); // 'next-to-next' | 'next' | 'arrived' | null
+  const alarmIntervalRef = useRef(null);
+  const vibrationIntervalRef = useRef(null);
 
   const rawRoute = state.route;
 
@@ -124,6 +335,53 @@ export default function TrackingPage() {
   const destinationStation = route?.stationDetails?.[route?.stationDetails?.length - 1];
   const destinationName = destinationStation?.name || (route?.path?.[route?.path?.length - 1]);
 
+  // ── Start/Stop Looping Alarm ────────────────────────────────────────────────
+
+  const startLoopingAlarm = useCallback((level) => {
+    // Don't restart the same alarm
+    if (alarmIntervalRef.current && activeAlarm === level) return;
+
+    // Clear any existing alarm first
+    clearLoopingAlarm();
+
+    setActiveAlarm(level);
+
+    // Play immediately
+    playMetroChime();
+    triggerVibration([300, 100, 300, 100, 500]);
+
+    // Then loop: chime every 2.5s, vibration every 2s
+    alarmIntervalRef.current = setInterval(() => {
+      playMetroChime();
+    }, 2500);
+
+    vibrationIntervalRef.current = setInterval(() => {
+      triggerVibration([300, 100, 300, 100, 500]);
+    }, 2000);
+  }, [activeAlarm]);
+
+  const clearLoopingAlarm = useCallback(() => {
+    if (alarmIntervalRef.current) {
+      clearInterval(alarmIntervalRef.current);
+      alarmIntervalRef.current = null;
+    }
+    if (vibrationIntervalRef.current) {
+      clearInterval(vibrationIntervalRef.current);
+      vibrationIntervalRef.current = null;
+    }
+    cancelVibration();
+    setActiveAlarm(null);
+  }, []);
+
+  // Cleanup alarm intervals on unmount
+  useEffect(() => {
+    return () => {
+      clearLoopingAlarm();
+    };
+  }, [clearLoopingAlarm]);
+
+  // ── Initialization ──────────────────────────────────────────────────────────
+
   useEffect(() => {
     if (!route) { navigate('/'); return; }
     metroAPI.getAllStations().then((res) => setAllStations(res.data || []));
@@ -131,35 +389,48 @@ export default function TrackingPage() {
     return () => stopTracking();
   }, []);
 
-  // Fire alarm chimes & push notifications dynamically for next-to-next, next, and arrival stations
+  // ── Alarm Trigger Logic ─────────────────────────────────────────────────────
+  // Fire looping alarms & push notifications for next-to-next, next, and arrival
+
   useEffect(() => {
     const remaining = prediction?.stopsRemaining;
-    if (remaining != null) {
-      if (remaining <= 2 && remaining > 0) {
-        if (lastAlertedStopsRef.current !== remaining) {
-          lastAlertedStopsRef.current = remaining;
-          playMetroAlarm();
-          const stopLabel = remaining === 2 ? 'Next-to-Next Station Alert' : 'Next Station Alert';
-          const targetName = remaining === 2 ? (prediction.nextStation || 'your destination') : destinationName;
-          notify(`🚇 ${stopLabel}!`, `Approaching ${targetName}. Get ready to deboard!`);
-        }
-      } else if (remaining === 0) {
-        if (lastAlertedStopsRef.current !== 0) {
-          lastAlertedStopsRef.current = 0;
-          playMetroAlarm();
-          notify('🎉 Deboard Now!', `You have arrived at ${destinationName}!`);
-          
-          // Auto-stop tracking to save battery and conserve GPS
-          stopTracking();
-          if (state.tripId) {
-            metroAPI.endTrip(state.tripId).catch(() => {});
-          }
+    if (remaining == null) return;
+
+    if (remaining === 2) {
+      if (lastAlertedStopsRef.current !== 2) {
+        lastAlertedStopsRef.current = 2;
+        startLoopingAlarm('next-to-next');
+        notify('🔔 Next-to-Next Station Alert!', `Approaching ${prediction.nextStation || 'your destination'}. Get ready to deboard!`);
+      }
+    } else if (remaining === 1) {
+      if (lastAlertedStopsRef.current !== 1) {
+        lastAlertedStopsRef.current = 1;
+        startLoopingAlarm('next');
+        notify('🚨 Next Station Alert!', `The very next station is ${destinationName}. Please prepare to deboard!`);
+      }
+    } else if (remaining === 0) {
+      if (lastAlertedStopsRef.current !== 0) {
+        lastAlertedStopsRef.current = 0;
+        startLoopingAlarm('arrived');
+        notify('🎉 Deboard Now!', `You have arrived at ${destinationName}!`);
+
+        // Auto-stop GPS tracking to save battery
+        stopTracking();
+        if (state.tripId) {
+          metroAPI.endTrip(state.tripId).catch(() => {});
         }
       }
+    } else {
+      // More than 2 stops remaining, no alarm needed — clear any active alarm
+      if (activeAlarm && remaining > 2) {
+        clearLoopingAlarm();
+        lastAlertedStopsRef.current = null;
+      }
     }
-  }, [prediction?.stopsRemaining, prediction?.nextStation, destinationName, state.tripId, stopTracking, notify]);
+  }, [prediction?.stopsRemaining, prediction?.nextStation, destinationName, state.tripId, stopTracking, notify, startLoopingAlarm, clearLoopingAlarm, activeAlarm]);
 
   const handleEndTrip = async () => {
+    clearLoopingAlarm();
     stopTracking();
     if (state.tripId) await metroAPI.endTrip(state.tripId).catch(() => {});
     dispatch({ type: 'END_TRIP' });
@@ -171,10 +442,10 @@ export default function TrackingPage() {
     setRecalculating(true);
     try {
       const res = await metroAPI.getRoute(prediction.currentStation, destinationName);
-      
+
       const strategy = route.strategy || 'shortest';
       let newRoute = null;
-      
+
       const routesObj = res.data || res;
       if (routesObj[strategy]) {
         newRoute = routesObj[strategy];
@@ -183,9 +454,9 @@ export default function TrackingPage() {
       } else {
         newRoute = routesObj;
       }
-      
+
       await metroAPI.recalculateTrip(state.tripId, { newRoutePath: newRoute.path });
-      
+
       // Update local context with recalculated route and preserve strategy
       dispatch({ type: 'SET_ROUTE', payload: { ...newRoute, strategy } });
       notify('🔄 Route Recalculated', `Recalculated route using ${strategy} strategy from ${prediction.currentStation} to ${destinationName}`);
@@ -210,8 +481,110 @@ export default function TrackingPage() {
     ? [userLoc.lat, userLoc.lng]
     : routeCoords[0] || [28.6328, 77.2197];
 
+  // ── Alarm Overlay Config ──────────────────────────────────────────────────────
+
+  const alarmConfig = {
+    'next-to-next': {
+      emoji: '🔔',
+      title: 'Next-to-Next Station!',
+      subtitle: `Approaching ${prediction?.nextStation || 'your destination'}. Get ready!`,
+      borderColor: 'border-orange-500/50',
+      bgGradient: 'from-orange-500/20 via-orange-900/10 to-transparent',
+      textColor: 'text-orange-400',
+      pulseColor: 'bg-orange-500/30',
+      dismissBg: 'bg-orange-500/20 hover:bg-orange-500/40 border-orange-500/40',
+    },
+    'next': {
+      emoji: '🚨',
+      title: 'NEXT Station Is Yours!',
+      subtitle: `${destinationName} is the very next station. Prepare to deboard!`,
+      borderColor: 'border-red-500/50',
+      bgGradient: 'from-red-500/25 via-red-900/10 to-transparent',
+      textColor: 'text-red-400',
+      pulseColor: 'bg-red-500/30',
+      dismissBg: 'bg-red-500/20 hover:bg-red-500/40 border-red-500/40',
+    },
+    'arrived': {
+      emoji: '🎉',
+      title: 'DEBOARD NOW!',
+      subtitle: `You have arrived at ${destinationName}!`,
+      borderColor: 'border-green-500/50',
+      bgGradient: 'from-green-500/25 via-green-900/10 to-transparent',
+      textColor: 'text-green-400',
+      pulseColor: 'bg-green-500/30',
+      dismissBg: 'bg-green-500/20 hover:bg-green-500/40 border-green-500/40',
+    },
+  };
+
+  const currentAlarmConfig = activeAlarm ? alarmConfig[activeAlarm] : null;
+
   return (
     <div className="h-screen bg-metro-dark flex flex-col">
+      {/* ── Looping Alarm Overlay ─────────────────────────────────────────────── */}
+      {currentAlarmConfig && (
+        <div className={`fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in`}>
+          <div className={`relative w-[90%] max-w-sm mx-auto p-6 rounded-2xl border-2 ${currentAlarmConfig.borderColor} bg-gradient-to-b ${currentAlarmConfig.bgGradient} bg-metro-dark/95 shadow-2xl`}>
+            {/* Pulsing background ring */}
+            <div className={`absolute -inset-1 ${currentAlarmConfig.pulseColor} rounded-2xl animate-pulse opacity-50`} />
+
+            <div className="relative space-y-4 text-center">
+              {/* Large animated emoji */}
+              <div className="text-6xl animate-bounce mx-auto">
+                {currentAlarmConfig.emoji}
+              </div>
+
+              {/* Title */}
+              <h2 className={`text-xl font-black ${currentAlarmConfig.textColor} tracking-wide uppercase animate-pulse`}>
+                {currentAlarmConfig.title}
+              </h2>
+
+              {/* Subtitle */}
+              <p className="text-sm text-slate-300 leading-relaxed">
+                {currentAlarmConfig.subtitle}
+              </p>
+
+              {/* Stops remaining */}
+              {prediction?.stopsRemaining != null && (
+                <div className="flex items-center justify-center gap-2">
+                  <span className="text-xs text-slate-400 uppercase font-bold">Stops remaining:</span>
+                  <span className={`text-2xl font-black ${currentAlarmConfig.textColor}`}>
+                    {prediction.stopsRemaining}
+                  </span>
+                </div>
+              )}
+
+              {/* Dismiss Button */}
+              <button
+                onClick={clearLoopingAlarm}
+                className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl border-2 ${currentAlarmConfig.dismissBg} font-bold text-sm text-white transition-all active:scale-95`}
+              >
+                <VolumeX className="w-5 h-5" />
+                🔕 Dismiss Alarm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── In-App Notification Toast (fallback when browser notifications fail) ── */}
+      {lastInAppAlert && !activeAlarm && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[8000] w-[90%] max-w-sm animate-fade-in">
+          <div className="glass-card border border-violet-500/30 p-3 flex items-start gap-3 shadow-lg shadow-violet-500/10">
+            <div className="text-xl flex-shrink-0">🚇</div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-white truncate">{lastInAppAlert.title}</p>
+              <p className="text-[11px] text-slate-300 line-clamp-2">{lastInAppAlert.body}</p>
+            </div>
+            <button
+              onClick={dismissInAppAlert}
+              className="text-slate-400 hover:text-white transition-colors text-xs flex-shrink-0 mt-0.5"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Map (60% height) */}
       <div className="flex-1 relative" style={{ minHeight: '55vh' }}>
         <MapContainer
@@ -299,7 +672,7 @@ export default function TrackingPage() {
       </div>
 
       {/* Bottom Tracking Panel */}
-      <div className="bg-metro-dark border-t border-metro-border p-4 pb-28 space-y-3">
+      <div className="bg-metro-dark border-t border-metro-border p-4 pb-28 space-y-3 overflow-y-auto" style={{ maxHeight: '45vh' }}>
         {/* Explicit Notification Permission banner if not granted */}
         {permission !== 'granted' && (
           <div className="bg-violet-500/10 border border-violet-500/30 rounded-xl px-4 py-3 flex items-center gap-3 animate-fade-in">
@@ -314,7 +687,7 @@ export default function TrackingPage() {
               onClick={async () => {
                 const res = await requestPermission();
                 if (res === 'granted') {
-                  playMetroAlarm();
+                  playMetroChime();
                   notify('🚇 Alerts Activated!', 'You will now receive notifications for this trip.');
                 }
               }}
@@ -325,7 +698,7 @@ export default function TrackingPage() {
           </div>
         )}
 
-        {prediction?.stopsRemaining === 0 ? (
+        {prediction?.stopsRemaining === 0 && !activeAlarm ? (
           /* Journey Completed Dashboard View */
           <div className="glass-card p-5 text-center space-y-4 border border-green-500/30 bg-green-500/5 animate-scale-up">
             <div className="w-12 h-12 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mx-auto text-2xl animate-bounce">
@@ -393,46 +766,46 @@ export default function TrackingPage() {
               </div>
             )}
 
-            {/* Dynamic Station Alarm & Alert Banner */}
-            {prediction && !prediction.warningMessage && (
+            {/* Dynamic Station Alarm & Alert Banner (static, non-looping version when alarm was dismissed) */}
+            {prediction && !prediction.warningMessage && !activeAlarm && (
               prediction.stopsRemaining === 2 ? (
-                <div className="bg-orange-500/15 border border-orange-500/30 rounded-xl px-4 py-3 flex items-center gap-3 animate-pulse">
-                  <div className="p-2 bg-orange-500/20 rounded-lg text-orange-400 animate-bounce">
+                <div className="bg-orange-500/15 border border-orange-500/30 rounded-xl px-4 py-3 flex items-center gap-3">
+                  <div className="p-2 bg-orange-500/20 rounded-lg text-orange-400">
                     🔔
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-bold text-orange-400 flex items-center gap-1.5">
-                      Next-to-Next Station Alarm!
+                      Next-to-Next Station
                     </p>
                     <p className="text-xs text-slate-300">
-                      You are approaching <strong className="text-white">{prediction.nextStation || 'your destination'}</strong>. Get ready!
+                      Approaching <strong className="text-white">{prediction.nextStation || 'your destination'}</strong>. Get ready!
                     </p>
                   </div>
                   <button 
-                    onClick={playMetroAlarm}
+                    onClick={() => startLoopingAlarm('next-to-next')}
                     className="px-3 py-1.5 text-[10px] bg-orange-500/20 border border-orange-500/30 hover:bg-orange-500/40 text-orange-300 font-bold rounded-lg transition-colors flex-shrink-0"
                   >
-                    🔊 Chime
+                    🔊 Alarm
                   </button>
                 </div>
               ) : prediction.stopsRemaining === 1 ? (
-                <div className="bg-red-500/15 border border-red-500/30 rounded-xl px-4 py-3 flex items-center gap-3 animate-pulse">
-                  <div className="p-2 bg-red-500/20 rounded-lg text-red-400 animate-bounce">
+                <div className="bg-red-500/15 border border-red-500/30 rounded-xl px-4 py-3 flex items-center gap-3">
+                  <div className="p-2 bg-red-500/20 rounded-lg text-red-400">
                     🚨
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-bold text-red-400 flex items-center gap-1.5">
-                      Next Station Alarm!
+                      NEXT Station Is Yours!
                     </p>
                     <p className="text-xs text-slate-300">
-                      The very next station is <strong className="text-white">{destinationName}</strong>. Please prepare to deboard!
+                      The very next station is <strong className="text-white">{destinationName}</strong>. Prepare to deboard!
                     </p>
                   </div>
                   <button 
-                    onClick={playMetroAlarm}
+                    onClick={() => startLoopingAlarm('next')}
                     className="px-3 py-1.5 text-[10px] bg-red-500/20 border border-red-500/30 hover:bg-red-500/40 text-red-300 font-bold rounded-lg transition-colors flex-shrink-0"
                   >
-                    🔊 Chime
+                    🔊 Alarm
                   </button>
                 </div>
               ) : null
@@ -526,6 +899,13 @@ export default function TrackingPage() {
                 </div>
               )}
             </div>
+
+            {/* GPS Simulator Console */}
+            <GPSSimulatorConsole
+              route={route}
+              tripId={state.tripId}
+              dispatch={dispatch}
+            />
 
             {/* End Trip */}
             <button
