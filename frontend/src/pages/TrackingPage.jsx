@@ -295,7 +295,10 @@ export default function TrackingPage() {
           style={{ borderRadius: 12 }}
         >
           <ArrowLeft className="w-4 h-4 text-white" />
-        </but      {/* Bottom Tracking Panel */}
+        </button>
+      </div>
+
+      {/* Bottom Tracking Panel */}
       <div className="bg-metro-dark border-t border-metro-border p-4 pb-28 space-y-3">
         {/* Explicit Notification Permission banner if not granted */}
         {permission !== 'granted' && (
