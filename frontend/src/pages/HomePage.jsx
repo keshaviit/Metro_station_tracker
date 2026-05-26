@@ -304,41 +304,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Live Line Status */}
-      <div className="mb-5 relative z-10">
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2.5 pl-1">🟢 Live Line Status Telemetry</p>
-        <div className="grid grid-cols-2 gap-3">
-          {lineStatuses.map((item) => (
-            <div
-              key={item.name}
-              className="glass-card p-3 border-l-4 bg-[#12141c]/30 backdrop-blur-md hover:bg-[#12141c]/50 transition-colors"
-              style={{ borderLeftColor: item.color }}
-            >
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-bold text-white">{item.name}</span>
-                <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                  item.status === 'Operational' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
-                }`}>
-                  {item.status}
-                </span>
-              </div>
-              <div className="text-[9px] text-slate-400 mb-2">{item.load}</div>
-              
-              {/* Telemetry Progress Bar */}
-              <div className="w-full bg-white/5 rounded-full h-1 overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-500 animate-pulse"
-                  style={{ width: `${item.pct}%`, backgroundColor: item.color, boxShadow: `0 0 6px ${item.color}` }}
-                />
-              </div>
-              <div className="flex justify-between items-center mt-1">
-                <span className="text-[8px] text-slate-500">Stability</span>
-                <span className="text-[8px] font-mono font-bold text-slate-300">{item.pct}%</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+
 
       {/* Quick Stats Footer */}
       <div className="grid grid-cols-3 gap-3 relative z-10">
