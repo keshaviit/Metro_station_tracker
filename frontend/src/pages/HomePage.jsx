@@ -181,11 +181,11 @@ export default function HomePage() {
       <div className="pt-10 pb-6 text-center animate-fade-in relative z-10">
         <div className="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 rounded-full px-4 py-1.5 text-xs font-semibold text-indigo-300 mb-4 shadow-[0_0_15px_rgba(99,102,241,0.1)]">
           <Zap className="w-3 h-3 text-indigo-400 animate-pulse" />
-          Antigravity HUD Active
+          Live GPS Core Active
         </div>
         <h1 className="text-3xl font-black text-white mb-2 leading-tight tracking-tight">
-          Good evening,<br />
-          <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent drop-shadow-[0_2px_10px_rgba(139,92,246,0.2)]">Voyager</span>
+          Smart Metro<br />
+          <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-300 bg-clip-text text-transparent drop-shadow-[0_2px_10px_rgba(139,92,246,0.2)]">Tracker</span>
         </h1>
         <p className="text-slate-400 text-xs tracking-wider uppercase font-semibold">Real-time routing · High-Fidelity Predictions · Live GPS</p>
       </div>
@@ -193,9 +193,9 @@ export default function HomePage() {
       {/* Quick Stats Banner / HUD Telemetry */}
       <div className="grid grid-cols-3 gap-2.5 mb-5 relative z-10">
         {[
-          { label: 'Ambient Temp', value: '24°C', detail: 'Comfortable' },
+          { label: 'GPS Satellites', value: '12 Active', detail: 'Lock Secured' },
           { label: 'Network Latency', value: '8ms', detail: 'Hyper-Fast' },
-          { label: 'System Load', value: 'Stable', detail: 'Optimal' },
+          { label: 'Routing Core', value: 'Active', detail: 'Optimized' },
         ].map((item) => (
           <div key={item.label} className="glass-card p-2.5 text-center border border-white/5 bg-[#12141c]/40 backdrop-blur-md">
             <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">{item.label}</div>
