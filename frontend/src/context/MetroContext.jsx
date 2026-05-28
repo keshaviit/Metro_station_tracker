@@ -52,7 +52,7 @@ export function MetroProvider({ children }) {
 
   // Initialise Socket.IO once
   useEffect(() => {
-    const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
+    const socket = io(import.meta.env.VITE_API_URL || window.location.origin, {
       transports: ['websocket'],
       autoConnect: true,
     });

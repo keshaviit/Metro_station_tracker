@@ -14,6 +14,7 @@ const logger = require('./src/config/logger');
 const { errorHandler, notFound } = require('./src/middleware/errorHandler');
 const stationRoutes = require('./src/routes/stationRoutes');
 const tripRoutes = require('./src/routes/tripRoutes');
+const authRoutes = require('./src/routes/authRoutes');
 const { predictionEngine } = require('./src/services/predictionEngine');
 
 // ── App setup ─────────────────────────────────────────────────────────────────
@@ -108,6 +109,7 @@ app.use('/api', limiter);
 
 // ── Routes ─────────────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
+app.use('/api/auth', authRoutes);
 app.use('/api/stations', stationRoutes);
 app.use('/api/trips', tripRoutes);
 

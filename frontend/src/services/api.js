@@ -1,14 +1,20 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: (import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api',
+  baseURL: (import.meta.env.VITE_API_URL || window.location.origin) + '/api',
   timeout: 10000,
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Request interceptor
+// Request interceptor to attach authentication token
 api.interceptors.request.use(
-  (config) => config,
+  (config) => {
+    const token = localStorage.getItem('metro_auth_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
   (error) => Promise.reject(error)
 );
 
@@ -22,6 +28,15 @@ api.interceptors.response.use(
 );
 
 // ── API Functions ─────────────────────────────────────────────────────────────
+export const authAPI = {
+  register:    (body) => api.post('/auth/register', body),
+  verifyOtp:   (body) => api.post('/auth/verify-otp', body),
+  resendOtp:   (body) => api.post('/auth/resend-otp', body),
+  login:       (body) => api.post('/auth/login', body),
+  googleLogin: (body) => api.post('/auth/google', body),
+  getMe:       ()     => api.get('/auth/me'),
+};
+
 export const metroAPI = {
   getAllStations:    ()           => api.get('/stations'),
   getStationNames:  ()           => api.get('/stations/names'),
