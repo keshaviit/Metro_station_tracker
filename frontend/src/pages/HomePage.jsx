@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { metroAPI } from '../services/api';
 import { useMetro } from '../context/MetroContext';
-import { MapPin, Navigation2, Search, ArrowRight, Train, Zap } from 'lucide-react';
+import { MapPin, Navigation2, Search, ArrowRight, Train, Zap, Briefcase, Home, Cpu, Radio } from 'lucide-react';
 import MetroGraph from '../services/routeEngine';
 
 const LINE_COLORS = {
@@ -109,8 +109,8 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [nearestLoading, setNearestLoading] = useState(false);
-  const [homeStation, setHomeStation] = useState(() => localStorage.getItem('smart_metro_home') || 'Noida Sector 52');
-  const [officeStation, setOfficeStation] = useState(() => localStorage.getItem('smart_metro_office') || 'Kashmere Gate');
+  const [homeStation, setHomeStation] = useState(() => localStorage.getItem('smart_metro_home') || null);
+  const [officeStation, setOfficeStation] = useState(() => localStorage.getItem('smart_metro_office') || null);
   const [showConfig, setShowConfig] = useState(false);
   const [tempHome, setTempHome] = useState(homeStation);
   const [tempOffice, setTempOffice] = useState(officeStation);
@@ -270,6 +270,10 @@ export default function HomePage() {
   };
 
   const handleQuickAction = (src, dest) => {
+    if (!src || !dest) {
+      setShowConfig(true);
+      return;
+    }
     setSource(src);
     setDestination(dest);
   };
@@ -306,21 +310,6 @@ export default function HomePage() {
         <p className="text-slate-400 text-xs tracking-wider uppercase font-semibold">Real-time routing · High-Fidelity Predictions · Live GPS</p>
       </div>
 
-      {/* Quick Stats Banner / HUD Telemetry */}
-      <div className="grid grid-cols-3 gap-2.5 mb-5 relative z-10">
-        {[
-          { label: 'GPS Satellites', value: '12 Active', detail: 'Lock Secured' },
-          { label: 'Network Latency', value: '8ms', detail: 'Hyper-Fast' },
-          { label: 'Routing Core', value: 'Active', detail: 'Optimized' },
-        ].map((item) => (
-          <div key={item.label} className="glass-card p-2.5 text-center border border-white/5 bg-[#12141c]/40 backdrop-blur-md">
-            <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">{item.label}</div>
-            <div className="font-bold text-white text-xs">{item.value}</div>
-            <div className="text-[9px] text-indigo-400 font-medium mt-0.5">{item.detail}</div>
-          </div>
-        ))}
-      </div>
-
       {/* Floating Quick Action Tiles */}
       <div className="mb-5 relative z-10">
         <div className="flex justify-between items-center mb-2.5 pl-1">
@@ -340,7 +329,7 @@ export default function HomePage() {
               <div>
                 <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">🏠 Home Station</label>
                 <select
-                  value={tempHome}
+                  value={tempHome || ''}
                   onChange={(e) => setTempHome(e.target.value)}
                   className="w-full bg-[#12141c] border border-white/10 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-indigo-500"
                 >
@@ -351,7 +340,7 @@ export default function HomePage() {
               <div>
                 <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">💼 Office Station</label>
                 <select
-                  value={tempOffice}
+                  value={tempOffice || ''}
                   onChange={(e) => setTempOffice(e.target.value)}
                   className="w-full bg-[#12141c] border border-white/10 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-indigo-500"
                 >
@@ -371,8 +360,8 @@ export default function HomePage() {
                 onClick={() => {
                   setHomeStation(tempHome);
                   setOfficeStation(tempOffice);
-                  localStorage.setItem('smart_metro_home', tempHome);
-                  localStorage.setItem('smart_metro_office', tempOffice);
+                  localStorage.setItem('smart_metro_home', tempHome || '');
+                  localStorage.setItem('smart_metro_office', tempOffice || '');
                   setShowConfig(false);
                 }}
                 className="px-3 py-1.5 text-[9px] font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg uppercase tracking-wider shadow-md shadow-indigo-600/30"
@@ -388,18 +377,26 @@ export default function HomePage() {
             onClick={() => handleQuickAction(homeStation, officeStation)}
             className="glass-card p-3.5 text-left border border-white/5 hover:border-indigo-500/30 bg-[#12141c]/30 hover:bg-[#12141c]/60 backdrop-blur-md transition-all group active:scale-95 duration-200 animate-slide-up"
           >
-            <div className="text-lg mb-1 group-hover:scale-110 transition-transform duration-200">💼</div>
-            <div className="font-bold text-white text-xs">Work Commute</div>
-            <div className="text-[10px] text-slate-400 mt-1 truncate">{homeStation} ➔ {officeStation}</div>
+            <Briefcase className="w-5 h-5 text-indigo-400 mb-1.5 group-hover:scale-110 transition-transform duration-200" />
+            <div className="font-bold text-white text-xs">
+              {homeStation && officeStation ? 'Work Commute' : 'Setup Work Commute'}
+            </div>
+            <div className="text-[10px] text-slate-400 mt-1 truncate">
+              {homeStation && officeStation ? `${homeStation} ➔ ${officeStation}` : 'Tap to configure stations'}
+            </div>
           </button>
 
           <button
             onClick={() => handleQuickAction(officeStation, homeStation)}
             className="glass-card p-3.5 text-left border border-white/5 hover:border-purple-500/30 bg-[#12141c]/30 hover:bg-[#12141c]/60 backdrop-blur-md transition-all group active:scale-95 duration-200 animate-slide-up"
           >
-            <div className="text-lg mb-1 group-hover:scale-110 transition-transform duration-200">🏠</div>
-            <div className="font-bold text-white text-xs">Home Commute</div>
-            <div className="text-[10px] text-slate-400 mt-1 truncate">{officeStation} ➔ {homeStation}</div>
+            <Home className="w-5 h-5 text-purple-400 mb-1.5 group-hover:scale-110 transition-transform duration-200" />
+            <div className="font-bold text-white text-xs">
+              {homeStation && officeStation ? 'Home Commute' : 'Setup Home Commute'}
+            </div>
+            <div className="text-[10px] text-slate-400 mt-1 truncate">
+              {homeStation && officeStation ? `${officeStation} ➔ ${homeStation}` : 'Tap to configure stations'}
+            </div>
           </button>
         </div>
       </div>
@@ -484,14 +481,14 @@ export default function HomePage() {
       {/* Quick Stats Footer */}
       <div className="grid grid-cols-3 gap-3 relative z-10">
         {[
-          { label: 'Tracked Stations', value: stationNames.length || '30+', icon: '🚇' },
-          { label: 'Search Model', value: 'Heuristic BFS', icon: '🧠' },
-          { label: 'Telemetry Provider', value: 'Live GPS Core', icon: '📡' },
+          { label: 'Tracked Stations', value: stationNames.length || '262', icon: <Train className="w-5 h-5 text-indigo-400 mx-auto" /> },
+          { label: 'Search Model', value: 'Heuristic BFS', icon: <Cpu className="w-5 h-5 text-purple-400 mx-auto" /> },
+          { label: 'Telemetry Provider', value: 'Live GPS Core', icon: <Radio className="w-5 h-5 text-indigo-300 mx-auto" /> },
         ].map((item) => (
-          <div key={item.label} className="glass-card p-3 text-center border border-white/5 bg-[#12141c]/20 backdrop-blur-md">
-            <div className="text-base mb-1">{item.icon}</div>
-            <div className="font-bold text-white text-xs">{item.value}</div>
-            <div className="text-[9px] text-slate-500 mt-0.5">{item.label}</div>
+          <div key={item.label} className="glass-card p-3.5 text-center border border-white/5 bg-[#12141c]/20 backdrop-blur-md flex flex-col justify-between items-center gap-1">
+            <div className="mb-0.5">{item.icon}</div>
+            <div className="font-bold text-white text-xs mt-1">{item.value}</div>
+            <div className="text-[9px] text-slate-500 font-medium uppercase tracking-wider">{item.label}</div>
           </div>
         ))}
       </div>

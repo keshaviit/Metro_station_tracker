@@ -1,19 +1,25 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { Home, Map, Navigation2, User } from 'lucide-react';
 import { useMetro } from '../context/MetroContext';
 import { useAuth } from '../context/AuthContext';
 
 export default function BottomNav() {
+  const location = useLocation();
   const { state } = useMetro();
   const { user, isAuthenticated } = useAuth();
 
+  if (location.pathname === '/auth') {
+    return null;
+  }
+
+  const isGuest = !isAuthenticated && localStorage.getItem('metro_guest') === 'true';
   const profilePath = isAuthenticated ? '/profile' : '/auth';
 
   const navItems = [
     { to: '/',           label: 'Home',     icon: Home },
     { to: '/map',        label: 'Stations', icon: Map },
     { to: '/track',      label: 'Track',    icon: Navigation2 },
-    { to: profilePath,   label: 'Profile',  icon: User },
+    ...(!isGuest ? [{ to: profilePath, label: 'Profile', icon: User }] : []),
   ];
 
   return (

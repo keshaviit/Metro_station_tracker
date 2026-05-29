@@ -219,10 +219,10 @@ export default function AuthPage() {
       <div className="text-center mb-8 relative z-10 animate-fade-in">
         <div className="inline-flex items-center gap-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full px-3.5 py-1 text-[11px] font-semibold text-indigo-300 mb-3 shadow-[0_0_15px_rgba(99,102,241,0.05)]">
           <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
-          Frictionless Telemetry Hub
+          Delhi Transit Guide
         </div>
         <h2 className="text-3xl font-black text-white leading-none tracking-tight">
-          Delhi Metro PWA
+          Delhi MetroPulse
         </h2>
         <span className="text-xs font-bold tracking-widest text-slate-400 uppercase mt-2.5 block">
           One-Stop Commuter Solution
