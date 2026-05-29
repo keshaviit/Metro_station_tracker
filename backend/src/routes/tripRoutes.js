@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const tripController = require('../controllers/tripController');
 const { body, validationResult } = require('express-validator');
+const { requireAuth, optionalAuth } = require('../middleware/authMiddleware');
 
 const validate = (req, res, next) => {
   const errors = validationResult(req);
@@ -35,7 +36,6 @@ router.post(
   tripController.updateLocation
 );
 
-const { requireAuth, optionalAuth } = require('../middleware/authMiddleware');
 
 // GET /api/trips/history
 router.get('/history', requireAuth, tripController.getTripHistory);
