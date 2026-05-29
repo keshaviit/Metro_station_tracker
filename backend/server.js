@@ -128,11 +128,13 @@ if (process.env.NODE_ENV === 'production') {
 app.use(errorHandler);
 
 // ── Start ───────────────────────────────────────────────────────────────────────
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-  logger.info(`🚇 Metro Tracker API running on port ${PORT}`);
-  logger.info(`🔌 Socket.IO enabled`);
-});
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 5000;
+  server.listen(PORT, () => {
+    logger.info(`🚇 Metro Tracker API running on port ${PORT}`);
+    logger.info(`🔌 Socket.IO enabled`);
+  });
+}
 
 connectDB().catch((err) => {
   logger.error(`MongoDB connection background failure: ${err.message}`);
