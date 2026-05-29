@@ -1,6 +1,8 @@
 const { predictionEngine } = require('../services/predictionEngine');
 const metroGraph = require('../services/routeEngine');
 const Trip = require('../models/Trip');
+const History = require('../models/History');
+const User = require('../models/User');
 const { v4: uuidv4 } = require('uuid');
 
 /**
@@ -9,7 +11,8 @@ const { v4: uuidv4 } = require('uuid');
  */
 exports.startTrip = async (req, res, next) => {
   try {
-    const { source, destination, userId } = req.body;
+    const { source, destination } = req.body;
+    const userId = req.user ? req.user._id : (req.body.userId || 'anonymous');
 
     if (!source || !destination) {
       return res.status(400).json({ success: false, message: 'source and destination are required' });
@@ -27,7 +30,7 @@ exports.startTrip = async (req, res, next) => {
     try {
       const trip = await Trip.create({
         tripId,
-        userId: userId || 'anonymous',
+        userId,
         source,
         destination,
         routePath: routeResult.path,
@@ -104,12 +107,35 @@ exports.endTrip = async (req, res, next) => {
     const visitedStations = predictionEngine.endTrip(tripId);
 
     try {
-      await Trip.findOneAndUpdate(
+      const endedTrip = await Trip.findOneAndUpdate(
         { tripId },
-        { status: 'completed', completedAt: new Date(), visitedStations }
+        { status: 'completed', completedAt: new Date(), visitedStations },
+        { new: true }
       );
+
+      // If this trip belongs to a logged-in user, create a History record!
+      if (endedTrip && endedTrip.userId !== 'anonymous') {
+        const routeResult = metroGraph.findShortestPath(endedTrip.source, endedTrip.destination);
+        const distanceKm = routeResult && !routeResult.error ? routeResult.distanceKm : 0;
+        const durationMinutes = routeResult && !routeResult.error ? routeResult.estimatedTime : 0;
+
+        const historyRecord = await History.create({
+          userId: endedTrip.userId,
+          source: endedTrip.source,
+          destination: endedTrip.destination,
+          pathTaken: endedTrip.routePath || [],
+          distanceKm,
+          durationMinutes,
+          completedAt: new Date()
+        });
+
+        // Push to User's tripHistory array for JWT session validation
+        await User.findByIdAndUpdate(endedTrip.userId, {
+          $push: { tripHistory: historyRecord._id }
+        });
+      }
     } catch (dbErr) {
-      console.warn('DB update skipped:', dbErr.message);
+      console.warn('DB update during endTrip failed:', dbErr.message);
     }
 
     res.json({ success: true, data: { tripId, visitedStations } });
@@ -154,6 +180,19 @@ exports.recalculateTrip = async (req, res, next) => {
         lastKnownStation: state.lastKnownStation,
       },
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * GET /api/trips/history
+ */
+exports.getTripHistory = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const history = await History.find({ userId }).sort({ completedAt: -1 });
+    res.json({ success: true, data: history });
   } catch (err) {
     next(err);
   }

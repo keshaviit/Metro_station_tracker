@@ -52,6 +52,8 @@ export default function RouteResultPage() {
     }
   }
 
+  const isOffline = routes?.isOfflineCalculated || routes?.data?.isOfflineCalculated;
+
   const activeRoute = shortest 
     ? (activeTab === 'shortest' ? shortest 
        : activeTab === 'minInterchanges' ? minInterchanges 
@@ -95,13 +97,34 @@ export default function RouteResultPage() {
       const res = await metroAPI.startTrip({ source: path[0], destination: path[path.length - 1] });
       const tripId = res.data.tripId;
       dispatch({ type: 'SET_TRIP_ID', payload: tripId });
-      // Join the socket room so we receive real-time prediction events from the server
       joinTrip(tripId);
-      // Set the activeRoute as the primary active route path for tracking
       dispatch({ type: 'SET_ROUTE', payload: { ...activeRoute, strategy: activeTab } });
       navigate('/track');
     } catch (err) {
-      console.error(err);
+      console.warn('[RouteResult] Start trip API failed, running in Offline Local HUD mode:', err.message);
+      
+      // Offline fallback: generate local trip session
+      const tripId = 'local-' + Date.now();
+      dispatch({ type: 'SET_TRIP_ID', payload: tripId });
+      dispatch({ type: 'SET_ROUTE', payload: { ...activeRoute, strategy: activeTab, isOfflineCalculated: true } });
+
+      // Save to background sync queue
+      try {
+        const queue = JSON.parse(localStorage.getItem('offline_trips_queue') || '[]');
+        queue.push({
+          tripId,
+          source: path[0],
+          destination: path[path.length - 1],
+          routePath: path,
+          completed: false,
+          startedAt: new Date().toISOString()
+        });
+        localStorage.setItem('offline_trips_queue', JSON.stringify(queue));
+      } catch (e) {
+        console.error('Failed to append to offline queue:', e);
+      }
+
+      navigate('/track');
     } finally {
       setStarting(false);
     }
@@ -133,17 +156,27 @@ export default function RouteResultPage() {
 
       {/* Header */}
       <div className="sticky top-0 z-50 bg-[#0A0B10]/85 backdrop-blur-md border-b border-white/5 px-4 py-4 mt-safe">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('/')}
-            className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4 text-white" />
-          </button>
-          <div>
-            <h1 className="font-bold text-white text-base">Route Compute HUD</h1>
-            <p className="text-xs text-slate-400">{path[0]} ➔ {path[path.length - 1]}</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/')}
+              className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4 text-white" />
+            </button>
+            <div>
+              <h1 className="font-bold text-white text-base">Route Compute HUD</h1>
+              <p className="text-xs text-slate-400">{path[0]} ➔ {path[path.length - 1]}</p>
+            </div>
           </div>
+
+          {/* Glowing Offline Mode Pill Indicator */}
+          {isOffline && (
+            <div className="glass-card px-2.5 py-1 border border-amber-500/30 bg-amber-500/10 flex items-center gap-1 shadow-lg shadow-amber-500/5 animate-pulse">
+              <span className="w-1 h-1 rounded-full bg-amber-400 shadow-[0_0_4px_#F59E0B]" />
+              <span className="text-[8px] font-bold text-amber-300 uppercase tracking-widest leading-none">OFFLINE SOLVER</span>
+            </div>
+          )}
         </div>
       </div>
 

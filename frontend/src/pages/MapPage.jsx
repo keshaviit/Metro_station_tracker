@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { metroAPI } from '../services/api';
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Popup, Polyline, Tooltip, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
 const LINE_COLORS = {
@@ -13,7 +13,7 @@ function MapView({ stations }) {
   useEffect(() => {
     if (stations.length > 0) {
       const bounds = stations.map(s => [s.lat, s.lng]);
-      map.fitBounds(bounds, { padding: [20, 20], maxZoom: 14 });
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
     }
   }, [stations, map]);
   return null;
@@ -21,6 +21,7 @@ function MapView({ stations }) {
 
 export default function MapPage() {
   const [stations, setStations] = useState([]);
+  const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedLine, setSelectedLine] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -29,15 +30,51 @@ export default function MapPage() {
 
   useEffect(() => {
     metroAPI.getAllStations().then((res) => {
-      setStations(res.data || []);
+      const allStations = res.data || [];
+      setStations(allStations);
+
+      // Construct lookups for connectivity track calculations
+      const lookup = {};
+      allStations.forEach((s) => {
+        lookup[s.name] = s;
+      });
+
+      const drawnTracks = new Set();
+      const tracks = [];
+
+      allStations.forEach((s) => {
+        if (s.connectedStations) {
+          s.connectedStations.forEach((neighborName) => {
+            const neighbor = lookup[neighborName];
+            if (neighbor) {
+              const trackKey = [s.name, neighbor.name].sort().join('--');
+              if (!drawnTracks.has(trackKey)) {
+                drawnTracks.add(trackKey);
+                tracks.push({
+                  from: [s.lat, s.lng],
+                  to: [neighbor.lat, neighbor.lng],
+                  line: s.line,
+                  key: trackKey
+                });
+              }
+            }
+          });
+        }
+      });
+
+      setConnections(tracks);
       setLoading(false);
     });
   }, []);
 
-  const filtered = stations.filter((s) => {
+  const filteredStations = stations.filter((s) => {
     const matchesLine = selectedLine === 'All' || s.line === selectedLine;
     const matchesSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesLine && matchesSearch;
+  });
+
+  const filteredConnections = connections.filter((c) => {
+    return selectedLine === 'All' || c.line === selectedLine;
   });
 
   return (
@@ -92,6 +129,21 @@ export default function MapPage() {
         </div>
       </div>
 
+      {/* Map Legend Floating HUD (bottom left) */}
+      <div className="absolute bottom-24 left-4 z-[1000] pointer-events-none">
+        <div className="glass-card px-3 py-2 border border-white/5 bg-[#12141c]/70 backdrop-blur-md space-y-1.5 shadow-lg max-w-[120px] pointer-events-auto">
+          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block border-b border-white/5 pb-1">Line Legend</span>
+          <div className="space-y-1">
+            {Object.entries(LINE_COLORS).map(([name, color]) => (
+              <div key={name} className="flex items-center gap-1.5 text-[8px] text-slate-300 font-bold uppercase">
+                <span className="w-1.5 h-1.5 rounded-full block" style={{ backgroundColor: color, boxShadow: `0 0 4px ${color}` }} />
+                <span>{name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {loading ? (
         <div className="flex justify-center items-center flex-1">
           <span className="flex gap-2"><span className="loading-dot"/><span className="loading-dot"/><span className="loading-dot"/></span>
@@ -108,12 +160,27 @@ export default function MapPage() {
               url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
             />
-            <MapView stations={filtered} />
-            {filtered.map((s) => (
+            <MapView stations={filteredStations} />
+
+            {/* Render connecting colored metro track polylines */}
+            {filteredConnections.map((c) => (
+              <Polyline
+                key={c.key}
+                positions={[c.from, c.to]}
+                pathOptions={{
+                  color: LINE_COLORS[c.line] || '#6366F1',
+                  weight: 3.5,
+                  opacity: 0.85
+                }}
+              />
+            ))}
+
+            {/* Render station CircleMarkers with permanent labels and popups */}
+            {filteredStations.map((s) => (
               <CircleMarker
                 key={s.id || s.name}
                 center={[s.lat, s.lng]}
-                radius={s.interchange ? 7 : 5}
+                radius={s.interchange ? 7 : 4.5}
                 pathOptions={{
                   color: '#ffffff',
                   weight: 1.5,
@@ -121,11 +188,26 @@ export default function MapPage() {
                   fillOpacity: 1
                 }}
               >
+                {/* Permanent text station labels */}
+                <Tooltip 
+                  permanent 
+                  direction="bottom" 
+                  offset={[0, 8]} 
+                  className="station-map-tooltip"
+                >
+                  {s.name}
+                </Tooltip>
+
+                {/* Touch popup details */}
                 <Popup className="metro-popup">
                   <div className="p-1 min-w-[120px]">
-                    <p className="font-bold text-gray-900 m-0 text-sm">{s.name}</p>
-                    <p className="text-xs text-gray-600 m-0 mt-1">{s.line} Line</p>
-                    {s.interchange && <span className="inline-block mt-2 text-[10px] px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded-full font-semibold border border-yellow-200">Interchange</span>}
+                    <p className="font-bold text-slate-200 m-0 text-sm">{s.name}</p>
+                    <p className="text-xs text-slate-400 m-0 mt-1">{s.line} Line</p>
+                    {s.interchange && (
+                      <span className="inline-block mt-2 text-[9px] px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full font-bold border border-yellow-500/30">
+                        Interchange Platform
+                      </span>
+                    )}
                   </div>
                 </Popup>
               </CircleMarker>
@@ -136,3 +218,4 @@ export default function MapPage() {
     </div>
   );
 }
+

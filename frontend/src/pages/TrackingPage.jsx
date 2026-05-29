@@ -445,6 +445,19 @@ export default function TrackingPage() {
         stopTracking();
         if (state.tripId) {
           metroAPI.endTrip(state.tripId).catch(() => {});
+          if (state.tripId.startsWith('local-')) {
+            try {
+              const queue = JSON.parse(localStorage.getItem('offline_trips_queue') || '[]');
+              const idx = queue.findIndex(t => t.tripId === state.tripId);
+              if (idx !== -1) {
+                queue[idx].completed = true;
+                queue[idx].completedAt = new Date().toISOString();
+                localStorage.setItem('offline_trips_queue', JSON.stringify(queue));
+              }
+            } catch (e) {
+              console.error('Failed to update offline queue:', e);
+            }
+          }
         }
       }
     } else {
@@ -459,7 +472,22 @@ export default function TrackingPage() {
   const handleEndTrip = async () => {
     clearLoopingAlarm();
     stopTracking();
-    if (state.tripId) await metroAPI.endTrip(state.tripId).catch(() => {});
+    if (state.tripId) {
+      await metroAPI.endTrip(state.tripId).catch(() => {});
+      if (state.tripId.startsWith('local-')) {
+        try {
+          const queue = JSON.parse(localStorage.getItem('offline_trips_queue') || '[]');
+          const idx = queue.findIndex(t => t.tripId === state.tripId);
+          if (idx !== -1) {
+            queue[idx].completed = true;
+            queue[idx].completedAt = new Date().toISOString();
+            localStorage.setItem('offline_trips_queue', JSON.stringify(queue));
+          }
+        } catch (e) {
+          console.error('Failed to update offline queue:', e);
+        }
+      }
+    }
     dispatch({ type: 'END_TRIP' });
     navigate('/');
   };

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { metroAPI } from '../services/api';
 import { useMetro } from '../context/MetroContext';
 import { MapPin, Navigation2, Search, ArrowRight, Train, Zap } from 'lucide-react';
+import MetroGraph from '../services/routeEngine';
 
 const LINE_COLORS = {
   Blue: 'bg-blue-500', Yellow: 'bg-yellow-400', Red: 'bg-red-500',
@@ -120,7 +121,76 @@ export default function HomePage() {
   }, [homeStation, officeStation]);
 
   useEffect(() => {
-    metroAPI.getStationNames().then((res) => setStationNames(res.data || []));
+    // Attempt to download full stations array to build autocomplete + offline track graph
+    metroAPI.getAllStations()
+      .then((res) => {
+        const stations = res.data || [];
+        setStationNames(stations.map(s => s.name));
+        localStorage.setItem('metro_stations_cache', JSON.stringify(stations));
+      })
+      .catch((err) => {
+        console.warn('[HomePage] Offline mode active: loading station names from LocalStorage cache.');
+        try {
+          const cached = JSON.parse(localStorage.getItem('metro_stations_cache')) || [];
+          if (cached.length > 0) {
+            setStationNames(cached.map(s => s.name));
+          }
+        } catch (e) {
+          console.error('[HomePage] Failed to parse station cache:', e);
+        }
+      });
+  }, []);
+
+  const syncOfflineTrips = async () => {
+    try {
+      const queue = JSON.parse(localStorage.getItem('offline_trips_queue') || '[]');
+      if (queue.length === 0) return;
+
+      console.log(`[Offline Sync] Found ${queue.length} offline trips. Starting background upload...`);
+      const remaining = [];
+
+      for (const trip of queue) {
+        if (trip.completed && !trip.synced) {
+          try {
+            // 1. Re-create the active trip record on the server
+            const res = await metroAPI.startTrip({
+              source: trip.source,
+              destination: trip.destination
+            });
+            
+            const serverTripId = res.data?.tripId || res.tripId;
+            if (serverTripId) {
+              // 2. End the trip on the server immediately to move it to History
+              await metroAPI.endTrip(serverTripId);
+              console.log(`[Offline Sync] Successfully uploaded journey: ${trip.source} ➔ ${trip.destination}`);
+            }
+          } catch (syncErr) {
+            console.warn(`[Offline Sync] Sync failed for ${trip.source} ➔ ${trip.destination}:`, syncErr.message);
+            remaining.push(trip); // Retain in queue for next network restore
+          }
+        } else if (!trip.completed) {
+          remaining.push(trip); // Preserve incomplete active tracking states
+        }
+      }
+
+      localStorage.setItem('offline_trips_queue', JSON.stringify(remaining));
+    } catch (e) {
+      console.error('[Offline Sync] Queue sync processing failed:', e);
+    }
+  };
+
+  useEffect(() => {
+    // Run sync on launch
+    syncOfflineTrips();
+
+    // Trigger sync when network connection becomes available
+    const handleOnline = () => {
+      console.log('[Network] System online. Resuming background queue synchronization...');
+      syncOfflineTrips();
+    };
+
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
   }, []);
 
   const handleSearch = async () => {
@@ -134,12 +204,48 @@ export default function HomePage() {
     }
     setError('');
     setLoading(true);
+    
     try {
+      // 1. Try online route solver first
       const res = await metroAPI.getRoute(source, destination);
       dispatch({ type: 'SET_ROUTE', payload: res.data });
       navigate('/route');
     } catch (err) {
-      setError(err.message);
+      console.warn('[HomePage] Server route request failed, entering Offline Routing HUD solver:', err.message);
+      
+      // 2. Offline Fallback: calculate BFS and Dijkstra paths directly inside the phone browser!
+      try {
+        const cached = JSON.parse(localStorage.getItem('metro_stations_cache')) || [];
+        if (cached.length === 0) {
+          throw new Error('Offline station data cache is empty. Please connect to the internet once to load the map.');
+        }
+
+        const graph = new MetroGraph(cached);
+        const shortest = graph.findShortestPath(source, destination);
+        const minInterchanges = graph.findMinInterchangesPath(source, destination);
+        const shortestDistance = graph.findShortestDistancePath(source, destination);
+        const lessCongested = graph.findLessCongestedPath(source, destination);
+
+        if (shortest.error) {
+          throw new Error(shortest.error);
+        }
+
+        const localRouteResult = {
+          success: true,
+          data: {
+            shortest,
+            minInterchanges,
+            shortestDistance,
+            lessCongested,
+            isOfflineCalculated: true // Flag showing local offline compute is active
+          }
+        };
+
+        dispatch({ type: 'SET_ROUTE', payload: localRouteResult });
+        navigate('/route');
+      } catch (offlineErr) {
+        setError(offlineErr.message || 'Routing server is offline and no local map cache is available.');
+      }
     } finally {
       setLoading(false);
     }

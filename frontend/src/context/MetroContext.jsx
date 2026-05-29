@@ -81,6 +81,37 @@ export function MetroProvider({ children }) {
   }
 
   function fireNotification(message) {
+    // 1. Play Synthesized Chime sound using Web Audio API (completely offline-friendly)
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (AudioContextClass) {
+        const audioCtx = new AudioContextClass();
+        const playBeep = (delay, freq) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, audioCtx.currentTime + delay);
+          gain.gain.setValueAtTime(0.15, audioCtx.currentTime + delay);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + delay + 0.3);
+          osc.start(audioCtx.currentTime + delay);
+          osc.stop(audioCtx.currentTime + delay + 0.35);
+        };
+        // Play premium double-chime beep
+        playBeep(0, 880);
+        playBeep(0.15, 1200);
+      }
+    } catch (e) {
+      console.warn('[MetroNotification] Web Audio context blocked or failed:', e.message);
+    }
+
+    // 2. Physical Phone Vibration
+    if ('vibrate' in navigator) {
+      navigator.vibrate([300, 150, 300, 150, 300]);
+    }
+
+    // 3. Native push / visual overlay
     if ('Notification' in window && Notification.permission === 'granted') {
       const icon = '/metro-icon.png';
       if ('serviceWorker' in navigator) {
@@ -90,9 +121,10 @@ export function MetroProvider({ children }) {
               body: message,
               icon,
               badge: icon,
-              vibrate: [200, 100, 200],
+              vibrate: [200, 100, 200, 100, 200],
               tag: 'metro-alert',
               renotify: true,
+              requireInteraction: true,
             });
           })
           .catch(() => {

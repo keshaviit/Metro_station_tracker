@@ -27,54 +27,62 @@ const generateOtp = () => {
 };
 
 /**
- * @desc    Register a new user (Email & Password) and send OTP email
+ * @desc    Register or Log In a user (Passwordless OTP / Password-based fallback)
  * @route   POST /api/auth/register
  * @access  Public
  */
 const register = async (req, res, next) => {
   try {
-    const { name, email, password } = req.body;
+    const { email } = req.body;
+    let { name, password } = req.body;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ success: false, message: 'Please provide name, email and password' });
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Please provide an email address' });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
+    // Default name if not provided
+    if (!name) {
+      name = email.split('@')[0];
+    }
+
+    // If password is not provided, generate a secure random one for passwordless flow
+    const isPasswordless = !password;
+    if (isPasswordless) {
+      password = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
     }
 
     // Check if user already exists
     const userExists = await User.findOne({ email });
 
     if (userExists) {
-      // If user exists and is already verified, reject registration
-      if (userExists.isVerified) {
-        return res.status(400).json({ success: false, message: 'Email already registered. Please log in instead.' });
+      // If user exists and this is passwordless, we send an OTP to log them in!
+      if (isPasswordless || !userExists.isVerified) {
+        const otp = generateOtp();
+        const otpSalt = await bcrypt.genSalt(10);
+        userExists.otp = await bcrypt.hash(otp, otpSalt);
+        userExists.otpExpiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+        // Maintain passwordless provider type
+        if (isPasswordless) {
+          userExists.authProvider = 'email';
+        }
+
+        await userExists.save();
+        await sendOtpEmail(email, userExists.name, otp);
+
+        logger.info(`Passwordless OTP code sent to existing user: ${email}`);
+        return res.status(200).json({
+          success: true,
+          message: 'A 6-digit verification code has been sent to your email.',
+          userId: userExists._id,
+        });
       }
 
-      // If user exists but is NOT verified, we can update their password and resend OTP
-      const salt = await bcrypt.genSalt(10);
-      userExists.password = await bcrypt.hash(password, salt);
-      userExists.name = name;
-      userExists.authProvider = 'email';
-      
-      const otp = generateOtp();
-      const otpSalt = await bcrypt.genSalt(10);
-      userExists.otp = await bcrypt.hash(otp, otpSalt);
-      userExists.otpExpiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes from now
-
-      await userExists.save();
-      await sendOtpEmail(email, name, otp);
-
-      logger.info(`Unverified user ${email} re-registered, sending new OTP`);
-      return res.status(200).json({
-        success: true,
-        message: 'A verification link/code has been sent to your email.',
-        userId: userExists._id,
-      });
+      // If they passed a password but are already verified, reject duplicate registration
+      return res.status(400).json({ success: false, message: 'Email already registered. Please log in instead.' });
     }
 
-    // Create new unverified user
+    // Create new unverified user (Google/Passwordless accounts are saved with standard model structures)
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -96,10 +104,10 @@ const register = async (req, res, next) => {
     // Send the verification OTP email
     await sendOtpEmail(email, name, otp);
 
-    logger.info(`User registered (unverified): ${email}`);
+    logger.info(`New user registered (unverified via OTP): ${email}`);
     res.status(201).json({
       success: true,
-      message: 'Account created! A 6-digit OTP code has been sent to your email.',
+      message: 'A 6-digit verification code has been sent to your email.',
       userId: newUser._id,
     });
   } catch (error) {

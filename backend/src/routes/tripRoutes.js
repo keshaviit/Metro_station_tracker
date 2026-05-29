@@ -14,6 +14,7 @@ const validate = (req, res, next) => {
 // POST /api/trips/start
 router.post(
   '/start',
+  optionalAuth,
   [
     body('source').notEmpty().withMessage('source is required'),
     body('destination').notEmpty().withMessage('destination is required'),
@@ -33,6 +34,11 @@ router.post(
   validate,
   tripController.updateLocation
 );
+
+const { requireAuth, optionalAuth } = require('../middleware/authMiddleware');
+
+// GET /api/trips/history
+router.get('/history', requireAuth, tripController.getTripHistory);
 
 // POST /api/trips/:tripId/end
 router.post('/:tripId/end', tripController.endTrip);

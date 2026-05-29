@@ -3,29 +3,48 @@ import { useMetro } from '../context/MetroContext';
 import { metroAPI } from '../services/api';
 
 /**
+ * Helper to calculate distance in meters using Haversine formula
+ */
+function getDistanceMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371000; // Radius of the Earth in meters
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+/**
  * useGPSTracking
  *
  * Uses navigator.geolocation.watchPosition for continuous GPS tracking.
- * Sends location updates to backend every SEND_INTERVAL_MS milliseconds.
- * Uses REST response to update prediction state directly (primary channel).
- * Also sends via socket for lower latency (secondary channel).
- *
  * Integrates Screen Wake Lock API to prevent device sleep during transit.
  * Cleans up watcher + wake lock on unmount.
+ *
+ * UPGRADE: Uses adaptive polling. Switches to high-accuracy, 1-second GPS hardware
+ * polling when the user is within 2km (~1 station away) of their destination.
  */
-const SEND_INTERVAL_MS = 5000;
-
 export function useGPSTracking() {
   const { state, dispatch, sendGpsUpdate } = useMetro();
   const watchIdRef  = useRef(null);
   const lastSentRef = useRef(0);
   const wakeLockRef = useRef(null);
+  const isHighAccuracyActiveRef = useRef(false);
   
   // Use a mutable ref to store the latest tripId to prevent stale closure bugs
   const tripIdRef = useRef(state.tripId);
   useEffect(() => {
     tripIdRef.current = state.tripId;
   }, [state.tripId]);
+
+  // Keep a mutable ref of state.route to prevent stale closures inside registerGpsWatcher callback
+  const routeRef = useRef(state.route);
+  useEffect(() => {
+    routeRef.current = state.route;
+  }, [state.route]);
 
   /**
    * Request a Screen Wake Lock to prevent the device from sleeping.
@@ -66,7 +85,6 @@ export function useGPSTracking() {
 
   /**
    * Re-acquire wake lock when the user returns to the app/tab.
-   * The lock is automatically released when the tab becomes hidden.
    */
   useEffect(() => {
     const handleVisibilityChange = async () => {
@@ -79,32 +97,57 @@ export function useGPSTracking() {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [requestWakeLock]);
 
-  const startTracking = useCallback(() => {
+  /**
+   * Internal helper to register/re-register the Geolocation Watcher
+   * with adaptive precision rates.
+   */
+  const registerGpsWatcher = useCallback((highAccuracy) => {
     if (!navigator.geolocation) {
       console.error('Geolocation not supported');
       return;
     }
 
-    dispatch({ type: 'SET_TRACKING', payload: true });
+    if (watchIdRef.current != null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+    }
 
-    // Acquire wake lock to keep screen alive
-    requestWakeLock();
+    isHighAccuracyActiveRef.current = highAccuracy;
+    const interval = highAccuracy ? 1000 : 5000; // 1s polling near destination, 5s normal
+
+    console.info(`[GPSWatcher] Registering watcher: highAccuracy=${highAccuracy}, interval=${interval}ms`);
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       (position) => {
         const { latitude: lat, longitude: lng, accuracy } = position.coords;
         dispatch({ type: 'SET_LOCATION', payload: { lat, lng, accuracy } });
 
+        // 1. Proximity Check: Calculate distance to destination station
+        const activeRoute = routeRef.current;
+        const stationDetails = activeRoute?.stationDetails || [];
+        const destination = stationDetails.length > 0 ? stationDetails[stationDetails.length - 1] : null;
+
+        if (destination && destination.lat && destination.lng) {
+          const dist = getDistanceMeters(lat, lng, destination.lat, destination.lng);
+          console.info(`[GPSWatcher] Current distance to destination "${destination.name}": ${dist.toFixed(0)}m (accuracy: ${accuracy.toFixed(0)}m)`);
+
+          // If within 2km (1 station) and high accuracy is not yet active
+          if (dist <= 2000 && !isHighAccuracyActiveRef.current) {
+            console.info('[GPSWatcher] Close to destination! Upgrading to 1s High-Accuracy GPS mode.');
+            registerGpsWatcher(true);
+            return;
+          }
+        }
+
+        // 2. Throttled Server Sync
         const now = Date.now();
-        if (now - lastSentRef.current >= SEND_INTERVAL_MS) {
+        if (now - lastSentRef.current >= interval) {
           lastSentRef.current = now;
 
           const activeTripId = tripIdRef.current;
           if (activeTripId) {
-            // Send via REST and USE the response to update prediction state
+            // Send via REST and update prediction state
             metroAPI.updateLocation({ tripId: activeTripId, lat, lng, accuracy })
               .then((res) => {
-                // The REST response contains the prediction data — use it!
                 if (res && res.data) {
                   dispatch({ type: 'SET_PREDICTION', payload: res.data });
                 }
@@ -119,12 +162,22 @@ export function useGPSTracking() {
       },
       (err) => console.error('GPS error:', err.message),
       {
-        enableHighAccuracy: false, // Set to false for seamless desktop testing and mobile GPS support
+        enableHighAccuracy: highAccuracy,
         timeout: 15000,
-        maximumAge: 5000,
+        maximumAge: highAccuracy ? 0 : 5000, // Bypass hardware cache in high accuracy mode
       }
     );
-  }, [dispatch, sendGpsUpdate, requestWakeLock]);
+  }, [dispatch, sendGpsUpdate]);
+
+  const startTracking = useCallback(() => {
+    dispatch({ type: 'SET_TRACKING', payload: true });
+
+    // Acquire wake lock to keep screen alive
+    requestWakeLock();
+
+    // Start with low-power standard polling (5 seconds, highAccuracy = false)
+    registerGpsWatcher(false);
+  }, [dispatch, requestWakeLock, registerGpsWatcher]);
 
   const stopTracking = useCallback(() => {
     if (watchIdRef.current != null) {
@@ -132,6 +185,7 @@ export function useGPSTracking() {
       watchIdRef.current = null;
     }
     dispatch({ type: 'SET_TRACKING', payload: false });
+    isHighAccuracyActiveRef.current = false;
 
     // Release wake lock when tracking stops
     releaseWakeLock();
@@ -143,7 +197,6 @@ export function useGPSTracking() {
       if (watchIdRef.current != null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
       }
-      // Also release wake lock on unmount
       if (wakeLockRef.current) {
         wakeLockRef.current.release().catch(() => {});
       }
@@ -152,3 +205,4 @@ export function useGPSTracking() {
 
   return { startTracking, stopTracking };
 }
+
