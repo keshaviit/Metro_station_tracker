@@ -1,4 +1,4 @@
-import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { MetroProvider } from './context/MetroContext';
 import { User } from 'lucide-react';
@@ -9,6 +9,19 @@ import TrackingPage from './pages/TrackingPage';
 import MapPage from './pages/MapPage';
 import AuthPage from './pages/AuthPage';
 import ProfilePage from './pages/ProfilePage';
+
+/** Guard: redirect to /auth if neither logged-in nor a guest */
+function ProtectedRoute({ children }) {
+  const { isAuthenticated, loading } = useAuth();
+  const isGuest = !isAuthenticated && localStorage.getItem('metro_guest') === 'true';
+
+  if (loading) return null; // wait for session check
+
+  if (!isAuthenticated && !isGuest) {
+    return <Navigate to="/auth" replace />;
+  }
+  return children;
+}
 
 function AppContent() {
   const location = useLocation();
@@ -32,11 +45,11 @@ function AppContent() {
       )}
 
       <Routes>
-        <Route path="/"       element={<HomePage />} />
-        <Route path="/route"  element={<RouteResultPage />} />
-        <Route path="/track"  element={<TrackingPage />} />
-        <Route path="/map"    element={<MapPage />} />
-        <Route path="/auth"   element={<AuthPage />} />
+        <Route path="/"        element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+        <Route path="/route"   element={<ProtectedRoute><RouteResultPage /></ProtectedRoute>} />
+        <Route path="/track"   element={<ProtectedRoute><TrackingPage /></ProtectedRoute>} />
+        <Route path="/map"     element={<ProtectedRoute><MapPage /></ProtectedRoute>} />
+        <Route path="/auth"    element={<AuthPage />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Routes>
       <BottomNav />
