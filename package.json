@@ -10,7 +10,7 @@
   "scripts": {
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
-    "build": "cd frontend && npm run build",
+    "build": "cd frontend && npm install && npx vite build",
     "build:frontend": "cd frontend && npm run build",
     "start:prod": "npm run build:frontend && pm2 start ecosystem.config.js --env production",
     "stop:prod": "pm2 stop ecosystem.config.js"
