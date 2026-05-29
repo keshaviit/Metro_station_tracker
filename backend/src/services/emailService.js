@@ -1,21 +1,15 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const logger = require('../config/logger');
 
-// Create reusable transporter object using Gmail SMTP
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD,
-  },
-});
+// Initialize Resend with the API key from environment variables
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 /**
- * Send an OTP Verification email to the user using Gmail SMTP.
+ * Send an OTP Verification email to the user using Resend HTTP API.
  */
 const sendOtpEmail = async (email, name, otp) => {
-  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
-    logger.warn('SMTP credentials are not configured in environment variables.');
+  if (!process.env.RESEND_API_KEY) {
+    logger.warn('RESEND_API_KEY is not configured in environment variables.');
     // Only do console fallback in true local dev (no VERCEL env, not production)
     if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
       console.log('\n' + '='.repeat(60));
@@ -25,7 +19,7 @@ const sendOtpEmail = async (email, name, otp) => {
       console.log('='.repeat(60) + '\n');
       return true;
     }
-    throw new Error('SMTP credentials are not configured.');
+    throw new Error('Email service is not configured (Missing RESEND_API_KEY).');
   }
 
   // HTML Email Template with Metro Tracker Branding
@@ -62,19 +56,30 @@ const sendOtpEmail = async (email, name, otp) => {
   `;
 
   try {
-    logger.info(`Attempting Gmail SMTP send to ${email}...`);
-    const info = await transporter.sendMail({
-      from: `"Delhi MetroPulse" <${process.env.GMAIL_USER}>`,
-      to: email,
+    logger.info(`Attempting Resend HTTP API send to ${email}...`);
+    
+    // Send email using Resend
+    // Note: When using a free Resend account without a verified custom domain, 
+    // you must use onboarding@resend.dev as the 'from' address, and you can only 
+    // send emails to the email address you signed up with.
+    const { data, error } = await resend.emails.send({
+      from: 'Delhi MetroPulse <onboarding@resend.dev>',
+      to: [email],
       subject: `🚇 ${otp} is your Smart Metro Tracker Verification Code`,
       html: htmlContent,
     });
-    logger.info(`Verification email sent successfully to ${email}. MessageId: ${info.messageId}`);
+
+    if (error) {
+      logger.error(`Resend API returned error for ${email}: ${error.message}`);
+      throw new Error(`Resend Error: ${error.message}`);
+    }
+
+    logger.info(`Verification email sent successfully to ${email}. ID: ${data?.id}`);
     return true;
   } catch (error) {
-    logger.error(`SMTP sending failed for ${email}: ${error.message}`);
+    logger.error(`Email sending failed for ${email}: ${error.message}`);
     
-    // In local development, fall back to simulation log if the actual SMTP connection fails
+    // In local development, fall back to simulation log if it fails
     if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
       console.log('\n' + '='.repeat(60));
       console.log(`✉️  [LOCAL DEV SMTP FAILURE FALLBACK] OTP EMAIL FOR: ${email}`);
