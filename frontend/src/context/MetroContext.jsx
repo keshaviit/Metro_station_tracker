@@ -52,6 +52,14 @@ export function MetroProvider({ children }) {
 
   // Initialise Socket.IO once
   useEffect(() => {
+    // Disable socket.io in production serverless environments since WebSockets aren't supported on Vercel
+    const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+    
+    if (isProduction) {
+      console.info('[MetroContext] Running in production cloud environment. Bypassing persistent WebSockets in favor of REST API backup.');
+      return;
+    }
+
     const socket = io(import.meta.env.VITE_API_URL || window.location.origin, {
       transports: ['websocket'],
       autoConnect: true,
