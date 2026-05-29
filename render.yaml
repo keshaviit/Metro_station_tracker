@@ -1,0 +1,27 @@
+# Render Blueprint for Delhi MetroPulse Backend
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: metro-tracker-api
+    runtime: node
+    region: singapore  # Close to India for low latency
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false  # Set manually in Render dashboard
+      - key: JWT_SECRET
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GMAIL_USER
+        sync: false
+      - key: GMAIL_APP_PASSWORD
+        sync: false
+      - key: CLIENT_ORIGIN
+        sync: false
