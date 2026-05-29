@@ -527,7 +527,7 @@
     "name": "Mundka Industrial Area (M.I.A)",
     "line": "Green",
     "lat": 28.68396,
-    "lng": 76.989822,
+    "lng": 77.018,
     "interchange": false,
     "connectedStations": [
       "Mundka",
@@ -860,17 +860,17 @@
     "interchange": true,
     "connectedStations": [
       "Jor Bagh",
-      "ATIMS",
+      "AIIMS",
       "Bhikaji Cama Place",
       "Sarojini Nagar"
     ]
   },
   {
-    "id": "atims",
-    "name": "ATIMS",
+    "id": "aiims",
+    "name": "AIIMS",
     "line": "Yellow",
-    "lat": 28.568199,
-    "lng": 77.207947,
+    "lat": 28.5682,
+    "lng": 77.2075,
     "interchange": false,
     "connectedStations": [
       "Dilli Haat - INA",
@@ -885,7 +885,7 @@
     "lng": 77.20682,
     "interchange": false,
     "connectedStations": [
-      "ATIMS",
+      "AIIMS",
       "Hauz Khas"
     ]
   },
@@ -1251,7 +1251,7 @@
     "connectedStations": [
       "Golf Course",
       "Noida Sec-18",
-      "OOkhla Bird Sanctuary"
+      "Okhla Bird Sanctuary"
     ]
   },
   {
@@ -1639,8 +1639,8 @@
     "id": "dwarka-sector-14",
     "name": "Dwarka Sector 14",
     "line": "Blue",
-    "lat": 28.57487,
-    "lng": 77.06454,
+    "lat": 28.6072,
+    "lng": 77.0255,
     "interchange": false,
     "connectedStations": [
       "Dwarka",
@@ -1727,8 +1727,7 @@
     "lng": 77.056198,
     "interchange": false,
     "connectedStations": [
-      "Dwarka Sector 8",
-      "Terminal 1- IGI Airport"
+      "Dwarka Sector 8"
     ]
   },
   {
@@ -1886,7 +1885,7 @@
     "connectedStations": [
       "Nehru Place",
       "Govind Puri",
-      "O0khla NSIC",
+      "Okhla NSIC",
       "Nehru Enclave"
     ]
   },
@@ -2292,14 +2291,13 @@
     "interchange": true,
     "connectedStations": [
       "IGI Airport",
-      "Dwarka Sector 21",
       "Shankar Vihar",
       "Sadar Bazar Cantonment"
     ]
   },
   {
-    "id": "ookhla-bird-sanctuary",
-    "name": "OOkhla Bird Sanctuary",
+    "id": "okhla-bird-sanctuary",
+    "name": "Okhla Bird Sanctuary",
     "line": "Magenta",
     "lat": 28.552816,
     "lng": 77.321564,
@@ -2317,7 +2315,7 @@
     "lng": 77.310173,
     "interchange": false,
     "connectedStations": [
-      "OOkhla Bird Sanctuary",
+      "Okhla Bird Sanctuary",
       "Jasola Vihar Shaheen Bagh"
     ]
   },
@@ -2366,12 +2364,12 @@
     "interchange": false,
     "connectedStations": [
       "Jamia Millia Islamia",
-      "O0khla NSIC"
+      "Okhla NSIC"
     ]
   },
   {
-    "id": "o0khla-nsic",
-    "name": "O0khla NSIC",
+    "id": "okhla-nsic",
+    "name": "Okhla NSIC",
     "line": "Magenta",
     "lat": 28.554575,
     "lng": 77.26487,
@@ -2674,8 +2672,8 @@
     "id": "sarojini-nagar",
     "name": "Sarojini Nagar",
     "line": "Pink",
-    "lat": 28.570208,
-    "lng": 77.187866,
+    "lat": 28.5742,
+    "lng": 77.1964,
     "interchange": false,
     "connectedStations": [
       "Dilli Haat - INA",
@@ -2889,8 +2887,8 @@
     "id": "noida-sector-51",
     "name": "Noida Sector 51",
     "line": "Aqua",
-    "lat": 28.57081,
-    "lng": 77.32612,
+    "lat": 28.5828,
+    "lng": 77.3742,
     "interchange": false,
     "connectedStations": [
       "Noida Sector 50",
