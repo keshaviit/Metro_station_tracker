@@ -49,7 +49,7 @@ export default function AuthPage() {
     if (window.google && !showOtpScreen) {
       try {
         window.google.accounts.id.initialize({
-          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || '8647e74b-8524-4315-81f2-472ce4f65d52.apps.googleusercontent.com',
+          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || '858891357145-qb9rkst3hfe5kn73br91u4k73b1ooojo.apps.googleusercontent.com',
           callback: handleGoogleCallback,
           cancel_on_tap_outside: true,
         });
