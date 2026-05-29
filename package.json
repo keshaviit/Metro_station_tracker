@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "Delhi Metro Tracker PWA — MERN monorepo",
   "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
   "scripts": {
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
