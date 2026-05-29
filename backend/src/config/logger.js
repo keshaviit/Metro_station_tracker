@@ -6,6 +6,21 @@ const logFormat = printf(({ level, message, timestamp, stack }) => {
   return `${timestamp} [${level}]: ${stack || message}`;
 });
 
+// Build transports — file logging is only possible on persistent servers,
+// NOT on Vercel serverless (read-only filesystem would crash the process)
+const transports = [
+  new winston.transports.Console({
+    format: combine(colorize(), logFormat),
+  }),
+];
+
+if (!process.env.VERCEL) {
+  transports.push(
+    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'logs/combined.log' })
+  );
+}
+
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
   format: combine(
@@ -13,13 +28,7 @@ const logger = winston.createLogger({
     errors({ stack: true }),
     logFormat
   ),
-  transports: [
-    new winston.transports.Console({
-      format: combine(colorize(), logFormat),
-    }),
-    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'logs/combined.log' }),
-  ],
+  transports,
 });
 
 module.exports = logger;

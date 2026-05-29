@@ -16,7 +16,8 @@ const transporter = nodemailer.createTransport({
 const sendOtpEmail = async (email, name, otp) => {
   if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
     logger.warn('SMTP credentials are not configured in environment variables.');
-    if (process.env.NODE_ENV !== 'production') {
+    // Only do console fallback in true local dev (no VERCEL env, not production)
+    if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
       console.log('\n' + '='.repeat(60));
       console.log(`✉️  [LOCAL DEV FALLBACK] OTP EMAIL SIMULATION FOR: ${email}`);
       console.log(`👤 Name: ${name}`);
@@ -74,7 +75,7 @@ const sendOtpEmail = async (email, name, otp) => {
     logger.error(`SMTP sending failed for ${email}: ${error.message}`);
     
     // In local development, fall back to simulation log if the actual SMTP connection fails
-    if (process.env.NODE_ENV !== 'production') {
+    if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
       console.log('\n' + '='.repeat(60));
       console.log(`✉️  [LOCAL DEV SMTP FAILURE FALLBACK] OTP EMAIL FOR: ${email}`);
       console.log(`👤 Name: ${name}`);
