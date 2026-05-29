@@ -23,7 +23,8 @@ function AppContent() {
       {showFloatingProfile && (
         <button
           onClick={() => navigate('/profile')}
-          className="absolute top-4 right-4 z-[9999] p-2.5 rounded-full border border-indigo-500/30 bg-[#12141c]/80 text-indigo-300 hover:text-white hover:scale-105 hover:border-indigo-400 active:scale-95 transition-all shadow-[0_0_15px_rgba(99,102,241,0.25)] backdrop-blur-md"
+          className="absolute right-4 z-[9999] p-2.5 rounded-full border border-indigo-500/30 bg-[#12141c]/80 text-indigo-300 hover:text-white hover:scale-105 hover:border-indigo-400 active:scale-95 transition-all shadow-[0_0_15px_rgba(99,102,241,0.25)] backdrop-blur-md"
+          style={{ top: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}
           title="Guest Profile"
         >
           <User className="w-5 h-5 animate-pulse" />

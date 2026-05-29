@@ -708,7 +708,7 @@ export default function TrackingPage() {
 
         {/* GPS Accuracy badge */}
         {userLoc && (
-          <div className="absolute top-3 right-3 z-[500] glass-card px-2 py-1">
+          <div className="absolute right-3 z-[500] glass-card px-2 py-1" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
             <div className="flex items-center gap-1 text-xs text-slate-300">
               <Radio className="w-3 h-3 text-green-400" />
               ±{Math.round(userLoc.accuracy || 0)}m
@@ -719,8 +719,8 @@ export default function TrackingPage() {
         {/* Back button */}
         <button
           onClick={() => navigate('/route')}
-          className="absolute top-3 left-3 z-[500] w-9 h-9 flex items-center justify-center glass-card hover:bg-metro-border transition-colors"
-          style={{ borderRadius: 12 }}
+          className="absolute left-3 z-[500] w-9 h-9 flex items-center justify-center glass-card hover:bg-metro-border transition-colors"
+          style={{ borderRadius: 12, top: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
         >
           <ArrowLeft className="w-4 h-4 text-white" />
         </button>

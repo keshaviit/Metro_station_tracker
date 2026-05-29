@@ -109,7 +109,7 @@ export default function ProfilePage() {
     : 'Recently';
 
   return (
-    <div className="min-h-screen bg-[#07080d] px-4 pt-10 pb-28 relative overflow-hidden">
+    <div className="min-h-screen bg-[#07080d] px-4 pt-safe pb-28 relative overflow-hidden">
       {/* Background radial highlights */}
       <div className="absolute top-10 left-1/4 w-[300px] h-[300px] bg-indigo-500/5 rounded-full blur-[80px] pointer-events-none" />
       <div className="absolute bottom-1/3 right-1/4 w-[250px] h-[250px] bg-purple-500/5 rounded-full blur-[80px] pointer-events-none" />

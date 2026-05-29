@@ -247,4 +247,25 @@ body {
   filter: drop-shadow(0 0 3px rgba(99, 102, 241, 0.3));
 }
 
+/* ── Safe Area Utility Classes for Notch & Mobile Support ──────────────── */
+.pt-safe {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 16px) !important;
+}
+.mt-safe {
+  margin-top: env(safe-area-inset-top, 0px) !important;
+}
+.pb-safe {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px) !important;
+}
+.mb-safe {
+  margin-bottom: env(safe-area-inset-bottom, 0px) !important;
+}
+.top-safe {
+  top: env(safe-area-inset-top, 0px) !important;
+}
+.bottom-safe {
+  bottom: env(safe-area-inset-bottom, 0px) !important;
+}
+
+
 
