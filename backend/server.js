@@ -137,3 +137,5 @@ server.listen(PORT, () => {
 connectDB().catch((err) => {
   logger.error(`MongoDB connection background failure: ${err.message}`);
 });
+
+module.exports = app;
