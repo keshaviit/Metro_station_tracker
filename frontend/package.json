@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node -e \"if (process.env.VERCEL) { require('child_process').execSync('npm install @rolldown/binding-linux-x64-gnu@1.0.1 lightningcss-linux-x64-gnu@1.32.0 --no-save', {stdio: 'inherit'}); }\"",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
