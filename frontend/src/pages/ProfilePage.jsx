@@ -253,7 +253,7 @@ export default function ProfilePage() {
             className="w-full bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-400/40 text-rose-300 font-black py-3.5 rounded-xl flex items-center justify-center gap-2 text-xs uppercase tracking-wider transition-all"
           >
             <LogOut className="w-4 h-4" />
-            De-authenticate Profile
+            Log Out
           </button>
         </div>
 
