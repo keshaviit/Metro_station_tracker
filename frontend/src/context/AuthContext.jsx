@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { authAPI } from '../services/api';
+import { authAPI, sendOtpViaVercel } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -57,8 +57,13 @@ export function AuthProvider({ children }) {
 
   const signup = async (name, email, password) => {
     try {
+      // Step 1: Register user on Render backend (creates user, no email sent)
       const res = await authAPI.register({ name, email, password });
-      return res; // Needs OTP screen transition on frontend
+      if (res.success && res.userId) {
+        // Step 2: Send OTP email via Vercel serverless function (Vercel allows Gmail SMTP)
+        await sendOtpViaVercel({ userId: res.userId, email, name: res.name || name || email.split('@')[0] });
+      }
+      return res;
     } catch (err) {
       throw err;
     }
@@ -78,9 +83,10 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const resendOtp = async (userId) => {
+  const resendOtp = async (userId, email, name) => {
     try {
-      return await authAPI.resendOtp({ userId });
+      // Re-send OTP via Vercel serverless function (same as initial send)
+      return await sendOtpViaVercel({ userId, email, name });
     } catch (err) {
       throw err;
     }

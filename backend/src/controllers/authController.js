@@ -2,8 +2,10 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
-const { sendOtpEmail } = require('../services/emailService');
 const logger = require('../config/logger');
+// Note: Email sending removed from this backend.
+// OTP generation + email is handled by the Vercel serverless function (/api/send-otp)
+// which runs on Vercel (no SMTP port restrictions). This backend only verifies OTPs.
 
 // Initialize Google OAuth2 client
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -15,15 +17,8 @@ const generateToken = (id) => {
   return jwt.sign(
     { id },
     process.env.JWT_SECRET || 'fallback_secret_for_local_dev',
-    { expiresIn: '30d' } // Session valid for 30 days
+    { expiresIn: '30d' }
   );
-};
-
-/**
- * Generate a random 6-digit numeric OTP code
- */
-const generateOtp = () => {
-  return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
 /**
@@ -55,41 +50,30 @@ const register = async (req, res, next) => {
     const userExists = await User.findOne({ email });
 
     if (userExists) {
-      // If user exists and this is passwordless, we send an OTP to log them in!
+      // If user exists and is unverified (or passwordless), return userId so Vercel can send OTP
       if (isPasswordless || !userExists.isVerified) {
-        const otp = generateOtp();
-        const otpSalt = await bcrypt.genSalt(10);
-        userExists.otp = await bcrypt.hash(otp, otpSalt);
-        userExists.otpExpiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
-
         // Maintain passwordless provider type
         if (isPasswordless) {
           userExists.authProvider = 'email';
         }
-
         await userExists.save();
-        await sendOtpEmail(email, userExists.name, otp);
 
-        logger.info(`Passwordless OTP code sent to existing user: ${email}`);
+        logger.info(`OTP send requested for existing user: ${email}`);
         return res.status(200).json({
           success: true,
-          message: 'A 6-digit verification code has been sent to your email.',
+          message: 'Verification code will be sent to your email.',
           userId: userExists._id,
+          name: userExists.name,
         });
       }
 
-      // If they passed a password but are already verified, reject duplicate registration
+      // Already verified with password — reject duplicate registration
       return res.status(400).json({ success: false, message: 'Email already registered. Please log in instead.' });
     }
 
-    // Create new unverified user (Google/Passwordless accounts are saved with standard model structures)
+    // Create new unverified user
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-
-    const otp = generateOtp();
-    const otpSalt = await bcrypt.genSalt(10);
-    const hashedOtp = await bcrypt.hash(otp, otpSalt);
-    const otpExpiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
 
     const newUser = await User.create({
       name,
@@ -97,18 +81,15 @@ const register = async (req, res, next) => {
       password: hashedPassword,
       authProvider: 'email',
       isVerified: false,
-      otp: hashedOtp,
-      otpExpiresAt,
+      // OTP is NOT generated here — Vercel serverless function will generate + send it
     });
 
-    // Send the verification OTP email
-    await sendOtpEmail(email, name, otp);
-
-    logger.info(`New user registered (unverified via OTP): ${email}`);
+    logger.info(`New user registered (unverified, OTP to be sent by Vercel): ${email}`);
     res.status(201).json({
       success: true,
-      message: 'A 6-digit verification code has been sent to your email.',
+      message: 'Account created. Verification code will be sent to your email.',
       userId: newUser._id,
+      name: newUser.name,
     });
   } catch (error) {
     next(error);
@@ -249,19 +230,13 @@ const login = async (req, res, next) => {
 
     // Check if email is verified
     if (!user.isVerified) {
-      // Trigger new OTP send
-      const otp = generateOtp();
-      const otpSalt = await bcrypt.genSalt(10);
-      user.otp = await bcrypt.hash(otp, otpSalt);
-      user.otpExpiresAt = Date.now() + 10 * 60 * 1000;
-      await user.save();
-      await sendOtpEmail(user.email, user.name, otp);
-
+      // Return userId so frontend can call Vercel /api/send-otp to send OTP
       return res.status(403).json({
         success: false,
-        message: 'Your account is not verified yet. We have sent a new OTP to your email.',
+        message: 'Your account is not verified yet. A new OTP will be sent to your email.',
         needsVerification: true,
         userId: user._id,
+        name: user.name,
       });
     }
 

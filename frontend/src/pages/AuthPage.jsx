@@ -20,6 +20,7 @@ export default function AuthPage() {
   // OTP Verification Screen
   const [showOtpScreen, setShowOtpScreen] = useState(false);
   const [otpUserId, setOtpUserId] = useState('');
+  const [otpUserName, setOtpUserName] = useState('');
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   const [resendTimer, setResendTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
@@ -100,10 +101,12 @@ export default function AuthPage() {
 
     setLoading(true);
     try {
-      // Calls the sign-up register endpoint (which generates & emails OTP passwordlessly)
+      // Calls the sign-up register endpoint on Render (creates user, no email sent)
+      // Then signup() internally calls Vercel /api/send-otp to send the email
       const res = await signup('', email, '');
       if (res.success) {
         setOtpUserId(res.userId || res.data?.userId);
+        setOtpUserName(res.name || email.split('@')[0]);
         setSuccessMsg('Passcode sent! Check your inbox.');
         setTimeout(() => {
           setShowOtpScreen(true);
@@ -189,7 +192,8 @@ export default function AuthPage() {
     setSuccessMsg('');
     setLoading(true);
     try {
-      const res = await resendOtp(otpUserId);
+      // Pass email + name so Vercel function can send the email
+      const res = await resendOtp(otpUserId, email, otpUserName);
       if (res.success) {
         setSuccessMsg('A new verification code has been sent!');
         setResendTimer(60);
