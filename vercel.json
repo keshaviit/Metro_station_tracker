@@ -7,9 +7,18 @@
       "config": {
         "distDir": "frontend/dist"
       }
+    },
+    {
+      "src": "api/send-otp.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
+    {
+      "src": "/api/send-otp",
+      "dest": "/api/send-otp.js",
+      "methods": ["POST", "OPTIONS"]
+    },
     {
       "handle": "filesystem"
     },
