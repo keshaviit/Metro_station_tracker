@@ -299,26 +299,22 @@ export default function HomePage() {
       
       {/* Hero Header */}
       <div className="pt-10 pb-6 text-center animate-fade-in relative z-10">
-        <div className="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 rounded-full px-4 py-1.5 text-xs font-semibold text-indigo-300 mb-4 shadow-[0_0_15px_rgba(99,102,241,0.1)]">
-          <Zap className="w-3 h-3 text-indigo-400 animate-pulse" />
-          Live GPS Core Active
-        </div>
         <h1 className="text-3xl font-black text-white mb-2 leading-tight tracking-tight">
-          Smart Metro<br />
+          Metro<br />
           <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-300 bg-clip-text text-transparent drop-shadow-[0_2px_10px_rgba(139,92,246,0.2)]">Tracker</span>
         </h1>
-        <p className="text-slate-400 text-xs tracking-wider uppercase font-semibold">Real-time routing · High-Fidelity Predictions · Live GPS</p>
+        <p className="text-slate-400 text-xs tracking-wider uppercase font-semibold">Smart tracking • Background alerts</p>
       </div>
 
       {/* Floating Quick Action Tiles */}
       <div className="mb-5 relative z-10">
         <div className="flex justify-between items-center mb-2.5 pl-1">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">⚡ Instant Despatch Actions</p>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">🚀 Quick Commutes</p>
           <button 
             onClick={() => setShowConfig(!showConfig)}
             className="text-[9px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors uppercase tracking-wider flex items-center gap-1"
           >
-            ⚙️ Edit Commutes
+            ⚙️ Edit Setup
           </button>
         </div>
 
@@ -444,7 +440,7 @@ export default function HomePage() {
           className="mt-4 w-full flex items-center justify-center gap-2 py-3 text-xs text-indigo-300 font-bold border border-indigo-500/20 hover:border-indigo-400/40 rounded-xl bg-indigo-500/5 hover:bg-indigo-500/10 transition-all disabled:opacity-50"
         >
           <MapPin className="w-3.5 h-3.5 text-indigo-400" />
-          {nearestLoading ? 'Detecting your coordinates...' : 'Acquire Current Location'}
+          {nearestLoading ? 'Finding nearest station...' : 'Use Current Location'}
         </button>
 
         {/* Search Button */}
@@ -457,7 +453,7 @@ export default function HomePage() {
           {loading ? (
             <span className="flex gap-1"><span className="loading-dot"/><span className="loading-dot"/><span className="loading-dot"/></span>
           ) : (
-            <><Search className="w-4 h-4" /> Compute Optimal Path <ArrowRight className="w-4 h-4" /></>
+            <><Search className="w-4 h-4" /> Find Route <ArrowRight className="w-4 h-4" /></>
           )}
         </button>
       </div>
@@ -481,9 +477,9 @@ export default function HomePage() {
       {/* Quick Stats Footer */}
       <div className="grid grid-cols-3 gap-3 relative z-10">
         {[
-          { label: 'Tracked Stations', value: stationNames.length || '262', icon: <Train className="w-5 h-5 text-indigo-400 mx-auto" /> },
-          { label: 'Search Model', value: 'Heuristic BFS', icon: <Cpu className="w-5 h-5 text-purple-400 mx-auto" /> },
-          { label: 'Telemetry Provider', value: 'Live GPS Core', icon: <Radio className="w-5 h-5 text-indigo-300 mx-auto" /> },
+          { label: 'Supported Stations', value: stationNames.length || '262', icon: <Train className="w-5 h-5 text-indigo-400 mx-auto" /> },
+          { label: 'Offline Routing', value: 'Ready', icon: <Zap className="w-5 h-5 text-green-400 mx-auto" /> },
+          { label: 'Background Alarms', value: 'Enabled', icon: <Radio className="w-5 h-5 text-indigo-300 mx-auto" /> },
         ].map((item) => (
           <div key={item.label} className="glass-card p-3.5 text-center border border-white/5 bg-[#12141c]/20 backdrop-blur-md flex flex-col justify-between items-center gap-1">
             <div className="mb-0.5">{item.icon}</div>

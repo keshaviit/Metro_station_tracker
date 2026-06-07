@@ -1,0 +1,15 @@
+{
+  "appId": "com.metro.tracker",
+  "appName": "Metro Tracker",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "http"
+  },
+  "plugins": {
+    "BackgroundGeolocation": {
+      "android": {
+        "useLegacyBridge": true
+      }
+    }
+  }
+}

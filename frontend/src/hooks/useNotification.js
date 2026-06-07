@@ -1,103 +1,89 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { LocalNotifications } from '@capacitor/local-notifications';
+import { Capacitor } from '@capacitor/core';
 
-/**
- * useNotification
- *
- * Robust notification hook with multi-layer fallback:
- * 1. Service Worker push notification (works in background)
- * 2. Standard browser Notification API (foreground only)
- * 3. In-app visual fallback flag (always works)
- *
- * Also exposes `lastInAppAlert` for visual fallback rendering.
- */
 export function useNotification() {
-  const [permission, setPermission] = useState(() => {
-    try {
-      return 'Notification' in window ? Notification.permission : 'unsupported';
-    } catch {
-      return 'unsupported';
-    }
-  });
-
-  // In-app fallback: stores the latest alert so the UI can render it
+  const [permission, setPermission] = useState('unsupported');
   const [lastInAppAlert, setLastInAppAlert] = useState(null);
   const inAppTimeoutRef = useRef(null);
 
-  // Sync permission state
   useEffect(() => {
-    try {
-      if ('Notification' in window) {
+    const checkPerms = async () => {
+      if (Capacitor.isNativePlatform()) {
+        const { display } = await LocalNotifications.checkPermissions();
+        setPermission(display);
+      } else if ('Notification' in window) {
         setPermission(Notification.permission);
       }
-    } catch {
-      // Notification API not available (insecure context, etc.)
-    }
+    };
+    checkPerms();
   }, []);
 
   const requestPermission = useCallback(async () => {
-    if (!('Notification' in window)) {
-      console.warn('[useNotification] Notification API not available (likely iOS Safari or insecure context).');
-      return 'unsupported';
-    }
-    try {
+    if (Capacitor.isNativePlatform()) {
+      const { display } = await LocalNotifications.requestPermissions();
+      setPermission(display);
+      return display;
+    } else {
+      if (!('Notification' in window)) return 'unsupported';
       const result = await Notification.requestPermission();
       setPermission(result);
       return result;
-    } catch (err) {
-      console.error('[useNotification] Permission request failed:', err);
-      return 'denied';
     }
   }, []);
 
-  /**
-   * Fire a notification.
-   * Tries Service Worker → Standard Notification → In-app fallback
-   */
-  const notify = useCallback((title, body, icon = '/metro-icon.png') => {
-    // Always set the in-app alert so the UI can show it regardless
+  const notify = useCallback(async (title, body, icon = '/metro-icon.png') => {
+    // Always show in-app toast regardless of permission
     setLastInAppAlert({ title, body, timestamp: Date.now() });
-
-    // Auto-clear in-app alert after 8 seconds
     if (inAppTimeoutRef.current) clearTimeout(inAppTimeoutRef.current);
-    inAppTimeoutRef.current = setTimeout(() => setLastInAppAlert(null), 8000);
+    inAppTimeoutRef.current = setTimeout(() => setLastInAppAlert(null), 10000);
 
-    // Attempt browser notifications
-    if (permission !== 'granted') {
-      console.info('[useNotification] Permission not granted, using in-app fallback.');
-      return;
-    }
+    if (Capacitor.isNativePlatform()) {
+      try {
+        // CRITICAL FIX: Re-check permission live at call time.
+        // Do NOT rely on stale React state — permission may have been granted
+        // after App.jsx's requestPermissions() resolved.
+        const { display } = await LocalNotifications.checkPermissions();
+        if (display !== 'granted') {
+          console.warn('[notify] Permission not granted, skipping native notification. Current:', display);
+          return;
+        }
 
-    // Try Service Worker first (works in background & lock screen)
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready
-        .then((registration) => {
-          registration.showNotification(title, {
-            body,
-            icon,
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              title,
+              body,
+              id: Math.floor(Math.random() * 10_000_000),
+              schedule: { at: new Date(Date.now() + 500), allowWhileIdle: true },
+              channelId: 'metro_alerts',
+            }
+          ]
+        });
+        console.log('[notify] Scheduled native notification:', title);
+      } catch (err) {
+        console.error('[notify] Failed to schedule notification:', err);
+      }
+    } else {
+      // Web fallback
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then((reg) => {
+          reg.showNotification(title, {
+            body, icon,
             badge: icon,
             vibrate: [200, 100, 200, 100, 200],
-            tag: 'metro-alert-' + Date.now(),
+            tag: 'metro-alert',
             renotify: true,
-            requireInteraction: true,  // Stay visible until user interacts
+            requireInteraction: true,
           });
-        })
-        .catch((err) => {
-          console.warn('[useNotification] SW notification failed, trying standard:', err);
-          try {
-            new Notification(title, { body, icon });
-          } catch (e) {
-            console.warn('[useNotification] Standard notification also failed:', e);
-          }
+        }).catch(() => {
+          try { new Notification(title, { body, icon }); } catch (_) {}
         });
-    } else {
-      // Fallback to standard Notification
-      try {
-        new Notification(title, { body, icon });
-      } catch (e) {
-        console.warn('[useNotification] Standard notification failed:', e);
+      } else {
+        try { new Notification(title, { body, icon }); } catch (_) {}
       }
     }
-  }, [permission]);
+  }, []); // No dependency on stale 'permission' state
 
   const dismissInAppAlert = useCallback(() => {
     setLastInAppAlert(null);

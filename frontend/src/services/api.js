@@ -6,6 +6,10 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+console.log('[API Debug] import.meta.env.VITE_API_URL =', import.meta.env.VITE_API_URL);
+console.log('[API Debug] final baseURL =', api.defaults.baseURL);
+
+
 // Request interceptor to attach authentication token
 api.interceptors.request.use(
   (config) => {
@@ -40,7 +44,8 @@ export const authAPI = {
 // Runs on Vercel (not Render) because Vercel allows Gmail SMTP, Render free tier does not.
 // Calls /api/send-otp → frontend/api/send-otp.js
 export const sendOtpViaVercel = async ({ userId, email, name }) => {
-  const response = await fetch('/api/send-otp', {
+  const vercelURL = import.meta.env.VITE_VERCEL_API_URL || window.location.origin;
+  const response = await fetch(`${vercelURL}/api/send-otp`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ userId, email, name }),

@@ -12,6 +12,11 @@
     "dev:frontend": "cd frontend && npm run dev",
     "build": "cd frontend && npm run build",
     "build:frontend": "cd frontend && npm run build",
+    "cap:sync": "cd frontend && npx cap sync",
+    "android:run": "cd frontend && npx cap run android --target=Pixel_5",
+    "ios:run": "cd frontend && npx cap run ios",
+    "app:android": "cd frontend && npm run build && npx cap sync && npx cap run android --target=Pixel_5",
+    "app:ios": "cd frontend && npm run build && npx cap sync && npx cap run ios",
     "start:prod": "npm run build:frontend && pm2 start ecosystem.config.js --env production",
     "stop:prod": "pm2 stop ecosystem.config.js"
   },

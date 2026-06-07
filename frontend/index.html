@@ -33,7 +33,8 @@
 
     <!-- Register Service Worker -->
     <script>
-      if ('serviceWorker' in navigator) {
+      // Do not register service worker inside native apps to prevent asset caching issues
+      if ('serviceWorker' in navigator && !window.location.href.startsWith('capacitor://') && window.location.hostname !== 'localhost') {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js').catch(() => {});
         });

@@ -165,7 +165,7 @@ export default function RouteResultPage() {
               <ArrowLeft className="w-4 h-4 text-white" />
             </button>
             <div>
-              <h1 className="font-bold text-white text-base">Route Compute HUD</h1>
+              <h1 className="font-bold text-white text-base">Route Details</h1>
               <p className="text-xs text-slate-400">{path[0]} ➔ {path[path.length - 1]}</p>
             </div>
           </div>
@@ -174,7 +174,7 @@ export default function RouteResultPage() {
           {isOffline && (
             <div className="glass-card px-2.5 py-1 border border-amber-500/30 bg-amber-500/10 flex items-center gap-1 shadow-lg shadow-amber-500/5 animate-pulse">
               <span className="w-1 h-1 rounded-full bg-amber-400 shadow-[0_0_4px_#F59E0B]" />
-              <span className="text-[8px] font-bold text-amber-300 uppercase tracking-widest leading-none">OFFLINE SOLVER</span>
+              <span className="text-[8px] font-bold text-amber-300 uppercase tracking-widest leading-none">OFFLINE MODE</span>
             </div>
           )}
         </div>
@@ -266,7 +266,7 @@ export default function RouteResultPage() {
           
           <div className="relative">
             <div className="flex mb-1.5 items-center justify-between">
-              <span className="text-[9px] font-bold uppercase text-indigo-300">Density Density Telemetry</span>
+              <span className="text-[9px] font-bold uppercase text-indigo-300">Congestion Level</span>
               <span className="text-xs font-black font-mono text-white">{avgCongestion}%</span>
             </div>
             <div className="overflow-hidden h-2.5 rounded-full bg-white/5 p-[2px]">
@@ -304,14 +304,14 @@ export default function RouteResultPage() {
         {/* Interchange alert */}
         {interchanges.length > 0 && (
           <div className="glass-card p-4 border-l-4 border-yellow-400 border-t border-r border-b border-white/5 bg-yellow-500/5">
-            <p className="text-xs font-bold text-yellow-400 mb-1 uppercase tracking-wider">⚡ Interchange Transit Action</p>
+            <p className="text-xs font-bold text-yellow-400 mb-1 uppercase tracking-wider">⚡ Transfer Point</p>
             <p className="text-xs text-slate-300 leading-relaxed">Transfer platform at: <span className="font-bold text-white">{interchanges.join(', ')}</span></p>
           </div>
         )}
 
         {/* Route Timeline */}
         <div className="glass-card p-5 border border-white/5 bg-[#12141c]/30">
-          <h2 className="font-bold text-white mb-5 text-xs uppercase tracking-wider pl-1">Interactive Route Timeline</h2>
+          <h2 className="font-bold text-white mb-5 text-xs uppercase tracking-wider pl-1">Route Timeline</h2>
           <div className="relative pl-1">
             {displayStations.map((station, idx) => {
               const isFirst = idx === 0;
@@ -371,7 +371,7 @@ export default function RouteResultPage() {
           className="w-full btn-gradient text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 text-xs uppercase tracking-wider disabled:opacity-60 shadow-[0_4px_20px_rgba(99,102,241,0.3)] transition-all hover:scale-[1.02]"
         >
           <Navigation2 className="w-4 h-4" />
-          {starting ? 'Acquiring Trip...' : 'Initiate Live Trip HUD'}
+          {starting ? 'Starting...' : 'Start Tracking'}
           <ChevronRight className="w-4 h-4" />
         </button>
       </div>

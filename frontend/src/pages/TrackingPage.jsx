@@ -336,9 +336,11 @@ export default function TrackingPage() {
   }, []);
 
   // ── Looping Alarm State ─────────────────────────────────────────────────────
-  const [activeAlarm, setActiveAlarm] = useState(null); // 'next-to-next' | 'next' | 'arrived' | null
+  const [activeAlarm, setActiveAlarm] = useState(null); // 'approaching' | 'next-to-next' | 'next' | 'arrived' | null
   const alarmIntervalRef = useRef(null);
   const vibrationIntervalRef = useRef(null);
+  const alarmStartTimeRef = useRef(null);
+  const [alarmElapsed, setAlarmElapsed] = useState(0);
 
   const rawRoute = state.route;
 
@@ -372,14 +374,17 @@ export default function TrackingPage() {
     clearLoopingAlarm();
 
     setActiveAlarm(level);
+    alarmStartTimeRef.current = Date.now();
+    setAlarmElapsed(0);
 
     // Play immediately
     playMetroChime();
     triggerVibration([300, 100, 300, 100, 500]);
 
-    // Then loop: chime sequence every 1.5s, vibration every 1s
+    // Loop chime every 1.5s
     alarmIntervalRef.current = setInterval(() => {
       playMetroChime();
+      setAlarmElapsed(Date.now() - (alarmStartTimeRef.current || Date.now()));
     }, 1500);
 
     vibrationIntervalRef.current = setInterval(() => {
@@ -398,6 +403,8 @@ export default function TrackingPage() {
     }
     cancelVibration();
     setActiveAlarm(null);
+    setAlarmElapsed(0);
+    alarmStartTimeRef.current = null;
   }, []);
 
   // Cleanup alarm intervals on unmount
@@ -423,7 +430,13 @@ export default function TrackingPage() {
     const remaining = prediction?.stopsRemaining;
     if (remaining == null) return;
 
-    if (remaining === 2) {
+    if (remaining === 3) {
+      if (lastAlertedStopsRef.current !== 3) {
+        lastAlertedStopsRef.current = 3;
+        startLoopingAlarm('approaching');
+        notify('🚇 3 Stations to Go!', `Heads up! ${destinationName} is 3 stops away. Get ready!`);
+      }
+    } else if (remaining === 2) {
       if (lastAlertedStopsRef.current !== 2) {
         lastAlertedStopsRef.current = 2;
         startLoopingAlarm('next-to-next');
@@ -461,8 +474,8 @@ export default function TrackingPage() {
         }
       }
     } else {
-      // More than 2 stops remaining, no alarm needed — clear any active alarm
-      if (activeAlarm && remaining > 2) {
+      // More than 3 stops remaining — clear any active alarm
+      if (activeAlarm && remaining > 3) {
         clearLoopingAlarm();
         lastAlertedStopsRef.current = null;
       }
@@ -539,15 +552,27 @@ export default function TrackingPage() {
   // ── Alarm Overlay Config ──────────────────────────────────────────────────────
 
   const alarmConfig = {
+    'approaching': {
+      emoji: '🚇',
+      title: '3 Stations to Go!',
+      subtitle: `${destinationName} is 3 stops away. Time to get ready!`,
+      borderColor: 'border-blue-500/50',
+      bgGradient: 'from-blue-500/20 via-blue-900/10 to-transparent',
+      textColor: 'text-blue-400',
+      pulseColor: 'bg-blue-500/20',
+      dismissBg: 'bg-blue-500/20 hover:bg-blue-500/40 border-blue-500/40',
+      barColor: 'bg-blue-500',
+    },
     'next-to-next': {
       emoji: '🔔',
       title: 'Next-to-Next Station!',
-      subtitle: `Approaching ${prediction?.nextStation || 'your destination'}. Get ready!`,
+      subtitle: `Approaching ${prediction?.nextStation || 'your destination'}. Get ready to deboard!`,
       borderColor: 'border-orange-500/50',
       bgGradient: 'from-orange-500/20 via-orange-900/10 to-transparent',
       textColor: 'text-orange-400',
       pulseColor: 'bg-orange-500/30',
       dismissBg: 'bg-orange-500/20 hover:bg-orange-500/40 border-orange-500/40',
+      barColor: 'bg-orange-500',
     },
     'next': {
       emoji: '🚨',
@@ -558,6 +583,7 @@ export default function TrackingPage() {
       textColor: 'text-red-400',
       pulseColor: 'bg-red-500/30',
       dismissBg: 'bg-red-500/20 hover:bg-red-500/40 border-red-500/40',
+      barColor: 'bg-red-500',
     },
     'arrived': {
       emoji: '🎉',
@@ -568,28 +594,39 @@ export default function TrackingPage() {
       textColor: 'text-green-400',
       pulseColor: 'bg-green-500/30',
       dismissBg: 'bg-green-500/20 hover:bg-green-500/40 border-green-500/40',
+      barColor: 'bg-green-500',
     },
   };
 
   const currentAlarmConfig = activeAlarm ? alarmConfig[activeAlarm] : null;
+  // Seconds the alarm has been ringing (shown as a countdown bar)
+  const alarmRingSecs = Math.round(alarmElapsed / 1000);
 
   return (
     <div className="h-screen bg-metro-dark flex flex-col">
       {/* ── Looping Alarm Overlay ─────────────────────────────────────────────── */}
       {currentAlarmConfig && (
-        <div className={`fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in`}>
-          <div className={`relative w-[90%] max-w-sm mx-auto p-6 rounded-2xl border-2 ${currentAlarmConfig.borderColor} bg-gradient-to-b ${currentAlarmConfig.bgGradient} bg-metro-dark/95 shadow-2xl`}>
-            {/* Pulsing background ring */}
-            <div className={`absolute -inset-1 ${currentAlarmConfig.pulseColor} rounded-2xl animate-pulse opacity-50`} />
+        <div className={`fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-md animate-fade-in`}>
+          <div className={`relative w-[92%] max-w-sm mx-auto rounded-2xl border-2 ${currentAlarmConfig.borderColor} bg-gradient-to-b ${currentAlarmConfig.bgGradient} bg-metro-dark/98 shadow-[0_0_60px_rgba(0,0,0,0.8)] overflow-hidden`}>
+            {/* Animated pulsing ring */}
+            <div className={`absolute -inset-2 ${currentAlarmConfig.pulseColor} rounded-2xl animate-pulse opacity-40 pointer-events-none`} />
 
-            <div className="relative space-y-4 text-center">
+            {/* Ringing time bar */}
+            <div className="w-full h-1.5 bg-white/10">
+              <div
+                className={`h-full ${currentAlarmConfig.barColor} transition-all duration-1000`}
+                style={{ width: `${Math.min(100, (alarmRingSecs % 10) * 10)}%` }}
+              />
+            </div>
+
+            <div className="relative p-6 space-y-4 text-center">
               {/* Large animated emoji */}
-              <div className="text-6xl animate-bounce mx-auto">
+              <div className={`text-6xl mx-auto ${activeAlarm === 'arrived' ? 'animate-bounce' : 'animate-ping-slow'}`}>
                 {currentAlarmConfig.emoji}
               </div>
 
               {/* Title */}
-              <h2 className={`text-xl font-black ${currentAlarmConfig.textColor} tracking-wide uppercase animate-pulse`}>
+              <h2 className={`text-xl font-black ${currentAlarmConfig.textColor} tracking-wide uppercase`}>
                 {currentAlarmConfig.title}
               </h2>
 
@@ -598,23 +635,28 @@ export default function TrackingPage() {
                 {currentAlarmConfig.subtitle}
               </p>
 
-              {/* Stops remaining */}
+              {/* Stops remaining pill */}
               {prediction?.stopsRemaining != null && (
-                <div className="flex items-center justify-center gap-2">
-                  <span className="text-xs text-slate-400 uppercase font-bold">Stops remaining:</span>
-                  <span className={`text-2xl font-black ${currentAlarmConfig.textColor}`}>
+                <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full border ${currentAlarmConfig.borderColor} bg-white/5`}>
+                  <span className="text-xs text-slate-400 uppercase font-bold">Stops left:</span>
+                  <span className={`text-2xl font-black ${currentAlarmConfig.textColor} tabular-nums`}>
                     {prediction.stopsRemaining}
                   </span>
                 </div>
               )}
 
+              {/* Destination name */}
+              <p className="text-[11px] text-slate-500 uppercase font-bold tracking-wider">
+                🏁 {destinationName}
+              </p>
+
               {/* Dismiss Button */}
               <button
                 onClick={clearLoopingAlarm}
-                className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl border-2 ${currentAlarmConfig.dismissBg} font-bold text-sm text-white transition-all active:scale-95`}
+                className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl border-2 ${currentAlarmConfig.dismissBg} font-bold text-sm text-white transition-all active:scale-95 hover:scale-[1.02]`}
               >
                 <VolumeX className="w-5 h-5" />
-                🔕 Dismiss Alarm
+                Dismiss Alarm
               </button>
             </div>
           </div>
@@ -832,46 +874,42 @@ export default function TrackingPage() {
               </div>
             )}
 
-            {/* Dynamic Station Alarm & Alert Banner (static, non-looping version when alarm was dismissed) */}
+            {/* Dynamic Station Alert Banners (static version shown after alarm is dismissed) */}
             {prediction && !prediction.warningMessage && !activeAlarm && (
-              prediction.stopsRemaining === 2 ? (
-                <div className="bg-orange-500/15 border border-orange-500/30 rounded-xl px-4 py-3 flex items-center gap-3 relative z-10 animate-fade-in">
-                  <div className="p-2 bg-orange-500/20 rounded-lg text-orange-400">
-                    🔔
-                  </div>
+              prediction.stopsRemaining === 3 ? (
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl px-4 py-3 flex items-center gap-3 relative z-10 animate-fade-in">
+                  <div className="p-2 bg-blue-500/15 rounded-lg text-blue-400 text-lg">🚇</div>
                   <div className="flex-1">
-                    <p className="text-sm font-bold text-orange-400 flex items-center gap-1.5">
-                      Next-to-Next Station
-                    </p>
-                    <p className="text-xs text-slate-300">
-                      Approaching <strong className="text-white">{prediction.nextStation || 'your destination'}</strong>. Get ready!
-                    </p>
+                    <p className="text-sm font-bold text-blue-400">3 Stations Away</p>
+                    <p className="text-xs text-slate-300">Heading to <strong className="text-white">{destinationName}</strong>. Start gathering your belongings.</p>
                   </div>
-                  <button 
-                    onClick={() => startLoopingAlarm('next-to-next')}
-                    className="px-3 py-1.5 text-[10px] bg-orange-500/20 border border-orange-500/30 hover:bg-orange-500/40 text-orange-300 font-bold rounded-lg transition-colors flex-shrink-0"
-                  >
-                    🔊 Alarm
+                  <button onClick={() => startLoopingAlarm('approaching')}
+                    className="px-3 py-1.5 text-[10px] bg-blue-500/20 border border-blue-500/30 hover:bg-blue-500/40 text-blue-300 font-bold rounded-lg transition-colors flex-shrink-0">
+                    🔊
+                  </button>
+                </div>
+              ) : prediction.stopsRemaining === 2 ? (
+                <div className="bg-orange-500/15 border border-orange-500/30 rounded-xl px-4 py-3 flex items-center gap-3 relative z-10 animate-fade-in">
+                  <div className="p-2 bg-orange-500/20 rounded-lg text-orange-400 text-lg">🔔</div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-orange-400">Next-to-Next Station</p>
+                    <p className="text-xs text-slate-300">Approaching <strong className="text-white">{prediction.nextStation || 'your destination'}</strong>. Get ready!</p>
+                  </div>
+                  <button onClick={() => startLoopingAlarm('next-to-next')}
+                    className="px-3 py-1.5 text-[10px] bg-orange-500/20 border border-orange-500/30 hover:bg-orange-500/40 text-orange-300 font-bold rounded-lg transition-colors flex-shrink-0">
+                    🔊
                   </button>
                 </div>
               ) : prediction.stopsRemaining === 1 ? (
                 <div className="bg-red-500/15 border border-red-500/30 rounded-xl px-4 py-3 flex items-center gap-3 relative z-10 animate-fade-in">
-                  <div className="p-2 bg-red-500/20 rounded-lg text-red-400">
-                    🚨
-                  </div>
+                  <div className="p-2 bg-red-500/20 rounded-lg text-red-400 text-lg">🚨</div>
                   <div className="flex-1">
-                    <p className="text-sm font-bold text-red-400 flex items-center gap-1.5">
-                      NEXT Station Is Yours!
-                    </p>
-                    <p className="text-xs text-slate-300">
-                      The very next station is <strong className="text-white">{destinationName}</strong>. Prepare to deboard!
-                    </p>
+                    <p className="text-sm font-bold text-red-400">NEXT Station Is Yours!</p>
+                    <p className="text-xs text-slate-300">The very next station is <strong className="text-white">{destinationName}</strong>. Prepare to deboard!</p>
                   </div>
-                  <button 
-                    onClick={() => startLoopingAlarm('next')}
-                    className="px-3 py-1.5 text-[10px] bg-red-500/20 border border-red-500/30 hover:bg-red-500/40 text-red-300 font-bold rounded-lg transition-colors flex-shrink-0"
-                  >
-                    🔊 Alarm
+                  <button onClick={() => startLoopingAlarm('next')}
+                    className="px-3 py-1.5 text-[10px] bg-red-500/20 border border-red-500/30 hover:bg-red-500/40 text-red-300 font-bold rounded-lg transition-colors flex-shrink-0">
+                    🔊
                   </button>
                 </div>
               ) : null
@@ -1013,20 +1051,13 @@ export default function TrackingPage() {
               )}
             </div>
 
-            {/* GPS Simulator Console */}
-            <GPSSimulatorConsole
-              route={route}
-              tripId={state.tripId}
-              dispatch={dispatch}
-            />
-
             {/* End Trip */}
             <button
               id="end-trip-btn"
               onClick={handleEndTrip}
               className="w-full bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/40 text-red-400 font-bold py-3.5 rounded-xl transition-all text-xs uppercase tracking-wider relative z-10"
             >
-              Terminate Trip Tracking
+              End Trip
             </button>
           </>
         )}
