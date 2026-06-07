@@ -32,6 +32,8 @@ const corsOptions = {
 
     const isAllowed = allowedOrigins.includes(origin) ||
                       origin.endsWith('.vercel.app') ||
+                      origin === 'http://localhost' ||
+                      origin === 'https://localhost' ||
                       origin.startsWith('http://localhost:');
 
     if (isAllowed) {
