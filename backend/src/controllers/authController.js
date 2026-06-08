@@ -3,9 +3,12 @@ const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const logger = require('../config/logger');
-// Note: Email sending removed from this backend.
-// OTP generation + email is handled by the Vercel serverless function (/api/send-otp)
-// which runs on Vercel (no SMTP port restrictions). This backend only verifies OTPs.
+const { sendOtpEmail } = require('../services/emailService');
+
+// Helper to generate a 6-digit numeric OTP
+const generateOtp = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
 
 // Initialize Google OAuth2 client
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -115,10 +118,6 @@ const verifyOtp = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    if (user.isVerified) {
-      return res.status(400).json({ success: false, message: 'Email already verified. Please log in.' });
-    }
-
     // Check if OTP is expired
     if (Date.now() > user.otpExpiresAt) {
       return res.status(400).json({ success: false, message: 'Verification code has expired. Please request a new one.' });
@@ -178,10 +177,6 @@ const resendOtp = async (req, res, next) => {
 
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
-    }
-
-    if (user.isVerified) {
-      return res.status(400).json({ success: false, message: 'Account is already verified.' });
     }
 
     const otp = generateOtp();
