@@ -412,8 +412,6 @@ body {
 
 /* High legibility inputs */
 .light input {
-  background-color: var(--input-bg);
-  border-color: var(--input-border);
   color: var(--text-primary);
 }
 

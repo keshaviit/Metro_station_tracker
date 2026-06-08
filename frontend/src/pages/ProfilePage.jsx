@@ -141,13 +141,15 @@ export default function ProfilePage() {
         <div className="flex flex-col items-center text-center space-y-sm pb-4 border-b border-outline-variant/20">
           <div className="relative group">
             {user.picture ? (
-              <img
-                src={user.picture}
-                alt={user.name}
-                className="w-16 h-16 rounded-full border border-primary/20 object-cover shadow-sm"
-              />
+              <div className="w-16 h-16 rounded-full overflow-hidden border border-primary/20 shadow-sm">
+                <img
+                  src={user.picture}
+                  alt={user.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
             ) : (
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 shadow-sm text-primary">
+              <div className="w-16 h-16 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center border border-primary/20 shadow-sm text-primary">
                 <span className="material-symbols-outlined text-[32px]">person</span>
               </div>
             )}

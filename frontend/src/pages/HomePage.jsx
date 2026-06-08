@@ -310,10 +310,10 @@ export default function HomePage() {
           {/* User Profile Avatar */}
           <div 
             onClick={() => navigate(isAuthenticated || localStorage.getItem('metro_guest') === 'true' ? '/profile' : '/auth')}
-            className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 text-primary flex items-center justify-center cursor-pointer hover:bg-primary/20 transition-all active:scale-95 duration-200"
+            className="w-10 h-10 rounded-full overflow-hidden bg-primary/10 border border-primary/20 text-primary flex items-center justify-center cursor-pointer hover:bg-primary/20 transition-all active:scale-95 duration-200"
           >
             {isAuthenticated && user?.picture ? (
-              <img src={user.picture} alt="Profile" className="w-full h-full rounded-full object-cover" />
+              <img src={user.picture} alt="Profile" className="w-full h-full object-cover" />
             ) : (
               <span className="material-symbols-outlined text-[20px]">person</span>
             )}
