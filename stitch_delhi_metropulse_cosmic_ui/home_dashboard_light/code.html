@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MetroPulse Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "tertiary-fixed": "#ffdcc5",
+            "on-primary-fixed-variant": "#2f2ebe",
+            "inverse-on-surface": "#f2effb",
+            "surface": "#fcf8ff",
+            "primary": "#4648d4",
+            "on-surface-variant": "#464554",
+            "on-primary": "#ffffff",
+            "on-error": "#ffffff",
+            "on-tertiary-container": "#fffbff",
+            "error-container": "#ffdad6",
+            "on-secondary": "#ffffff",
+            "on-background": "#1b1b23",
+            "on-tertiary-fixed": "#301400",
+            "error": "#ba1a1a",
+            "on-primary-container": "#fffbff",
+            "on-primary-fixed": "#07006c",
+            "surface-container-lowest": "#ffffff",
+            "on-tertiary": "#ffffff",
+            "primary-fixed-dim": "#c0c1ff",
+            "surface-container": "#efecf8",
+            "on-secondary-fixed-variant": "#43474b",
+            "secondary": "#5a5f62",
+            "surface-container-highest": "#e4e1ed",
+            "outline": "#767586",
+            "on-secondary-fixed": "#171c1f",
+            "surface-variant": "#e4e1ed",
+            "surface-tint": "#494bd6",
+            "outline-variant": "#c7c4d7",
+            "tertiary": "#904900",
+            "secondary-container": "#dce0e4",
+            "secondary-fixed-dim": "#c3c7cb",
+            "surface-container-high": "#e9e6f3",
+            "tertiary-container": "#b55d00",
+            "primary-container": "#6063ee",
+            "surface-container-low": "#f5f2fe",
+            "on-surface": "#1b1b23",
+            "on-tertiary-fixed-variant": "#703700",
+            "inverse-primary": "#c0c1ff",
+            "background": "#fcf8ff",
+            "surface-bright": "#fcf8ff",
+            "inverse-surface": "#303038",
+            "primary-fixed": "#e1e0ff",
+            "surface-dim": "#dbd8e4",
+            "on-error-container": "#93000a",
+            "secondary-fixed": "#dfe3e7",
+            "on-secondary-container": "#5e6367",
+            "tertiary-fixed-dim": "#ffb783"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "md": "16px",
+            "margin-mobile": "16px",
+            "margin-desktop": "48px",
+            "lg": "24px",
+            "xs": "4px",
+            "xl": "32px",
+            "gutter": "16px",
+            "base": "4px",
+            "sm": "8px"
+          },
+          "fontFamily": {
+            "body-lg": ["Inter"],
+            "label-md": ["Inter"],
+            "headline-lg-mobile": ["Inter"],
+            "title-md": ["Inter"],
+            "display-lg": ["Inter"],
+            "headline-lg": ["Inter"],
+            "body-sm": ["Inter"]
+          },
+          "fontSize": {
+            "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+            "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+            "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "600"}],
+            "title-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+            "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+            "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+            "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    body { font-family: 'Inter', sans-serif; }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .transit-timeline::before {
+      content: '';
+      position: absolute;
+      left: 7px;
+      top: 24px;
+      bottom: 24px;
+      width: 2px;
+      background: #F1F5F9;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background selection:bg-primary-fixed-dim min-h-screen pb-24">
+<!-- Top Navigation Shell -->
+<nav class="fixed top-0 w-full z-50 bg-surface/80 dark:bg-surface/80 backdrop-blur-md text-primary font-title-md text-title-md border-b border-outline-variant/30 shadow-sm flex items-center justify-between px-margin-mobile h-16 w-full">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined style_interactions cursor-pointer">menu</span>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-primary tracking-tight">MetroPulse</h1>
+</div>
+<div class="w-10 h-10 rounded-full overflow-hidden border border-outline-variant/50 cursor-pointer active:scale-95 duration-200">
+<img alt="User profile photo" class="w-full h-full object-cover" data-alt="A professional close-up portrait of a young man with a friendly expression, set against a blurred urban background with soft morning light. The photography style is clean and high-end, utilizing a shallow depth of field to emphasize the subject while maintaining the minimalist, light-mode aesthetic of the MetroPulse brand." src="https://lh3.googleusercontent.com/aida/AP1WRLuK-6XglojMPw_WCu-Q4N_FPmAzmeP2_otpU1HmgqeBb3PSK16xMfSMVsSWc3jYGpRiXPnDp0sE14JkA4fF_l8pxqMlh4_CzgD_TAZM7QGVjDNRKJoLzAsoyCbEplgAe4lbf9-Yyckdit3rpjQVS2jx_QhGrxW907QO0s2k_bbvuD0KXXJn9sR6fd_y1zGbos_BAO1OXzdL5xfdPZzdTREFcVsKSYG2NACRyJzIIDDnrajxYwIgzJgjSAh3"/>
+</div>
+</nav>
+<main class="pt-24 px-margin-mobile max-w-2xl mx-auto space-y-xl">
+<!-- Greeting Section -->
+<header class="space-y-xs">
+<p class="text-on-surface-variant font-body-lg text-body-lg">Good Morning, Alex</p>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface tracking-tight">Where are you going today?</h2>
+</header>
+<!-- Search Component -->
+<section class="relative group">
+<div class="absolute inset-y-0 left-md flex items-center pointer-events-none text-outline">
+<span class="material-symbols-outlined">search</span>
+</div>
+<input class="w-full h-14 pl-12 pr-md bg-surface-container-low border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition-all font-body-lg text-body-lg outline-none placeholder:text-outline/60" placeholder="Search destinations or lines..." type="text"/>
+</section>
+<!-- Interactive Map Preview (Bento Pattern) -->
+<section class="grid grid-cols-1 md:grid-cols-2 gap-md">
+<div class="relative h-48 rounded-xl overflow-hidden shadow-sm border border-outline-variant/30 group cursor-pointer">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" data-alt="A stylized, minimalist digital map of a metropolitan area showing clean transit arteries in indigo and slate grey. The map has a high-key, light-themed aesthetic with soft shadows and translucent layers, capturing the efficient and modern atmosphere of a high-tech city transit network." data-location="London" src="https://lh3.googleusercontent.com/aida/AP1WRLs8iAXA8cRaY2i75GrPblIwexW-cuqM5CdhjTyIbq9zVodUuE522_LTatj1eygAc-i7PD591cYXENYtekBay518nD0mYr2HiuQlmfd4brICtyv2Mlt3T_UTNFmd8CUagm-6P9pnpuxpg2tcll8IVHrwS0eH-2FA35l_2y64u4GmbYyBno9QL5qXpHtdlJMZmLRExSLBs1bLeBIlrEG6LKrSyTwENGS0LbtNDL1fDeDngqqvXUT2vMQbuR6t"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+<div class="absolute bottom-md left-md text-white">
+<p class="font-label-md text-label-md opacity-90">Live View</p>
+<p class="font-title-md text-title-md">Nearby Stations</p>
+</div>
+</div>
+<div class="bg-primary-container/10 border border-primary/20 rounded-xl p-md flex flex-col justify-between">
+<div>
+<span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-on-primary mb-sm">
+<span class="material-symbols-outlined" style="font-size: 20px;">bolt</span>
+</span>
+<h3 class="font-title-md text-title-md text-on-primary-fixed-variant">Smart Commute</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-xs">Optimized route to Work is currently 4 mins faster.</p>
+</div>
+<button class="w-full py-sm bg-primary text-on-primary rounded-lg font-label-md text-label-md style_interactions shadow-sm mt-md">Start Journey</button>
+</div>
+</section>
+<!-- Recent Trips Section -->
+<section class="space-y-md">
+<div class="flex items-center justify-between">
+<h3 class="font-title-md text-title-md text-on-surface">Recent Trips</h3>
+<button class="text-primary font-label-md text-label-md hover:underline">View History</button>
+</div>
+<div class="space-y-sm">
+<!-- Trip Card 1 -->
+<div class="glass-card border border-outline-variant/30 rounded-xl p-md flex items-center justify-between style_universal_hover group cursor-pointer">
+<div class="flex items-center gap-md">
+<div class="flex flex-col items-center gap-xs">
+<div class="w-3 h-3 rounded-full border-2 border-blue-500"></div>
+<div class="w-[2px] h-4 bg-slate-100"></div>
+<div class="w-3 h-3 rounded-full bg-blue-500"></div>
+</div>
+<div>
+<p class="font-body-lg text-body-lg text-on-surface">Central Station</p>
+<div class="flex items-center gap-sm mt-xs">
+<span class="px-sm py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold tracking-wider uppercase">Blue Line</span>
+<span class="text-on-surface-variant font-body-sm text-body-sm">Yesterday, 17:45</span>
+</div>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+</div>
+<!-- Trip Card 2 -->
+<div class="glass-card border border-outline-variant/30 rounded-xl p-md flex items-center justify-between style_universal_hover group cursor-pointer">
+<div class="flex items-center gap-md">
+<div class="flex flex-col items-center gap-xs">
+<div class="w-3 h-3 rounded-full border-2 border-yellow-500"></div>
+<div class="w-[2px] h-4 bg-slate-100"></div>
+<div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+</div>
+<div>
+<p class="font-body-lg text-body-lg text-on-surface">Green Valley</p>
+<div class="flex items-center gap-sm mt-xs">
+<span class="px-sm py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-[10px] font-bold tracking-wider uppercase">Yellow Line</span>
+<span class="text-on-surface-variant font-body-sm text-body-sm">Oct 24, 08:30</span>
+</div>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+</div>
+</div>
+</section>
+<!-- Quick Info Grid -->
+<section class="grid grid-cols-2 gap-md">
+<div class="bg-surface-container rounded-xl p-md border border-outline-variant/20">
+<p class="text-on-surface-variant font-label-md text-label-md uppercase tracking-widest">Active Stop</p>
+<p class="text-on-surface font-title-md text-title-md mt-xs">Oak Street</p>
+<p class="text-primary font-body-sm text-body-sm mt-xs">Next in 3 mins</p>
+</div>
+<div class="bg-surface-container rounded-xl p-md border border-outline-variant/20">
+<p class="text-on-surface-variant font-label-md text-label-md uppercase tracking-widest">Saved</p>
+<p class="text-on-surface font-title-md text-title-md mt-xs">Work</p>
+<p class="text-on-surface-variant font-body-sm text-body-sm mt-xs">12 mins away</p>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Shell -->
+<footer class="fixed bottom-0 left-0 w-full flex justify-around items-center h-20 px-sm pb-safe bg-surface/80 dark:bg-surface/80 backdrop-blur-md border-t border-outline-variant/30 shadow-lg z-50">
+<!-- Home (Active) -->
+<button class="flex flex-col items-center justify-center text-primary bg-primary-container/20 rounded-xl px-4 py-1 active:scale-90 duration-150 transition-all">
+<span class="material-symbols-outlined" data-icon="home" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label-md text-label-md">Home</span>
+</button>
+<!-- Map -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-container-high active:scale-90 duration-150 transition-all">
+<span class="material-symbols-outlined" data-icon="map">map</span>
+<span class="font-label-md text-label-md">Map</span>
+</button>
+<!-- Tracking -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-container-high active:scale-90 duration-150 transition-all">
+<span class="material-symbols-outlined" data-icon="explore_nearby">explore_nearby</span>
+<span class="font-label-md text-label-md">Tracking</span>
+</button>
+<!-- Profile -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-container-high active:scale-90 duration-150 transition-all">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-md text-label-md">Profile</span>
+</button>
+</footer>
+<script>
+    // Micro-interactions for search focus
+    const searchInput = document.querySelector('input');
+    searchInput.addEventListener('focus', () => {
+      searchInput.parentElement.classList.add('scale-[1.01]');
+    });
+    searchInput.addEventListener('blur', () => {
+      searchInput.parentElement.classList.remove('scale-[1.01]');
+    });
+
+    // Add subtle hover parallax to map card
+    const mapCard = document.querySelector('.group img');
+    if (mapCard) {
+      mapCard.parentElement.addEventListener('mousemove', (e) => {
+        const { left, top, width, height } = mapCard.parentElement.getBoundingClientRect();
+        const x = (e.clientX - left) / width - 0.5;
+        const y = (e.clientY - top) / height - 0.5;
+        mapCard.style.transform = `scale(1.1) translate(${x * 10}px, ${y * 10}px)`;
+      });
+      mapCard.parentElement.addEventListener('mouseleave', () => {
+        mapCard.style.transform = 'scale(1) translate(0, 0)';
+      });
+    }
+  </script>
+</body></html>

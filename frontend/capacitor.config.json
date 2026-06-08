@@ -1,9 +1,9 @@
 {
-  "appId": "com.metro.tracker",
+  "appId": "com.trackmymetro.app",
   "appName": "Metro Tracker",
   "webDir": "dist",
   "server": {
-    "androidScheme": "http"
+    "androidScheme": "https"
   },
   "plugins": {
     "BackgroundGeolocation": {

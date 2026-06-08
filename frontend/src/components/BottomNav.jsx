@@ -1,12 +1,11 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, Map, Navigation2, User } from 'lucide-react';
 import { useMetro } from '../context/MetroContext';
 import { useAuth } from '../context/AuthContext';
 
 export default function BottomNav() {
   const location = useLocation();
   const { state } = useMetro();
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   if (location.pathname === '/auth') {
     return null;
@@ -16,57 +15,43 @@ export default function BottomNav() {
   const profilePath = isAuthenticated ? '/profile' : '/auth';
 
   const navItems = [
-    { to: '/',           label: 'Home',     icon: Home },
-    { to: '/map',        label: 'Stations', icon: Map },
-    { to: '/track',      label: 'Track',    icon: Navigation2 },
-    ...(!isGuest ? [{ to: profilePath, label: 'Profile', icon: User }] : []),
+    { to: '/',           label: 'Home',     icon: 'home' },
+    { to: '/map',        label: 'Map',     icon: 'map' },
+    { to: '/track',      label: 'Tracking', icon: 'explore_nearby' },
+    ...(!isGuest ? [{ to: profilePath, label: 'Profile', icon: 'person' }] : []),
   ];
 
   return (
-    <nav className="bottom-nav">
-      <div className="flex items-center justify-around py-2">
-        {navItems.map(({ to, label, icon: Icon }) => (
+    <footer className="fixed bottom-0 left-0 w-full flex justify-around items-center h-20 px-sm pb-safe bg-surface/80 backdrop-blur-md border-t border-outline-variant/30 shadow-lg z-50">
+      {navItems.map(({ to, label, icon }) => {
+        const isActive = location.pathname === to;
+        return (
           <NavLink
             key={label}
             to={to}
             id={`nav-${label.toLowerCase()}`}
-            className={({ isActive }) =>
-              `flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${
-                isActive
-                  ? 'text-metro-accent'
-                  : 'text-slate-500 hover:text-slate-300'
-              }`
-            }
+            className={`flex flex-col items-center justify-center px-4 py-1.5 rounded-xl transition-all duration-200 active:scale-90 ${
+              isActive
+                ? 'text-primary bg-primary-container/20 font-bold'
+                : 'text-on-surface-variant hover:bg-surface-container-high'
+            }`}
           >
-            {({ isActive }) => (
-              <>
-                <div className={`relative transition-all ${isActive ? 'scale-110' : ''}`}>
-                  {label === 'Profile' && user?.picture ? (
-                    <img
-                      src={user.picture}
-                      alt="Profile"
-                      className={`w-5 h-5 rounded-full object-cover border ${
-                        isActive ? 'border-metro-accent shadow-[0_0_8px_rgba(99,102,241,0.5)]' : 'border-slate-500'
-                      }`}
-                    />
-                  ) : (
-                    <Icon className="w-5 h-5" />
-                  )}
-                  {/* Active dot */}
-                  {isActive && (
-                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-metro-accent rounded-full" />
-                  )}
-                  {/* Tracking indicator */}
-                  {label === 'Track' && state.isTracking && (
-                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                  )}
-                </div>
-                <span className="text-[10px] font-medium">{label}</span>
-              </>
-            )}
+            <div className="relative">
+              <span 
+                className="material-symbols-outlined text-[24px]"
+                style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
+              >
+                {icon}
+              </span>
+              {/* Alert indicator for tracking state */}
+              {label === 'Tracking' && state.isTracking && (
+                <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-surface animate-pulse" />
+              )}
+            </div>
+            <span className="font-label-md text-[10px] uppercase tracking-wider mt-0.5">{label}</span>
           </NavLink>
-        ))}
-      </div>
-    </nav>
+        );
+      })}
+    </footer>
   );
 }

@@ -2,7 +2,6 @@ import { useNavigate } from 'react-router-dom';
 import { useMetro } from '../context/MetroContext';
 import { metroAPI } from '../services/api';
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Clock, Train, ArrowLeftRight, Navigation2, ChevronRight } from 'lucide-react';
 
 const LINE_COLORS = {
   Blue: '#2563EB', Yellow: '#EAB308', Red: '#EF4444',
@@ -65,22 +64,22 @@ export default function RouteResultPage() {
 
   if (!routes || !path || path.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-metro flex flex-col items-center justify-center p-4">
-        <div className="glass-card p-6 max-w-sm w-full text-center space-y-4 animate-scale-up">
-          <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center mx-auto text-red-400 text-2xl animate-pulse">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+        <div className="bg-surface-container border border-outline-variant/30 p-6 max-w-sm w-full text-center space-y-4 rounded-2xl shadow-xl animate-scale-up">
+          <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center mx-auto text-red-500 text-2xl animate-pulse">
             ⚠️
           </div>
           <div className="space-y-1.5">
-            <h2 className="text-lg font-bold text-white">No Route Available</h2>
-            <p className="text-xs text-slate-300">
+            <h2 className="text-lg font-bold text-on-surface">No Route Available</h2>
+            <p className="text-xs text-on-surface-variant">
               We couldn't construct a route path for the selected stations, or your session has timed out.
             </p>
           </div>
           <button
             onClick={() => navigate('/')}
-            className="w-full btn-gradient text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 text-sm"
+            className="w-full h-12 bg-primary text-on-primary font-bold py-3 rounded-xl flex items-center justify-center gap-2 text-sm active:scale-[0.98] transition-all"
           >
-            <ArrowLeft className="w-4 h-4" /> Go Back to Home
+            <span className="material-symbols-outlined text-[18px]">arrow_back</span> Go Back to Home
           </button>
         </div>
       </div>
@@ -149,24 +148,24 @@ export default function RouteResultPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0A0B10] pb-28 relative overflow-hidden">
+    <div className="min-h-screen bg-background text-on-background pb-28 relative overflow-hidden">
       {/* Background light leaks for Antigravity atmosphere */}
-      <div className="absolute top-10 left-10 w-[250px] h-[250px] bg-indigo-500/5 rounded-full blur-[80px] pointer-events-none" />
-      <div className="absolute bottom-20 right-10 w-[200px] h-[200px] bg-purple-500/5 rounded-full blur-[80px] pointer-events-none" />
+      <div className="absolute top-10 left-10 w-[250px] h-[250px] bg-primary/5 rounded-full blur-[80px] pointer-events-none" />
+      <div className="absolute bottom-20 right-10 w-[200px] h-[200px] bg-tertiary/5 rounded-full blur-[80px] pointer-events-none" />
 
       {/* Header */}
-      <div className="sticky top-0 z-50 bg-[#0A0B10]/85 backdrop-blur-md border-b border-white/5 px-4 py-4 mt-safe">
+      <div className="sticky top-0 z-50 bg-surface/80 backdrop-blur-md border-b border-outline-variant/30 px-4 py-4 mt-safe">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/')}
-              className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors"
+              className="w-9 h-9 flex items-center justify-center rounded-xl bg-surface-container border border-outline-variant/50 hover:bg-surface-container-high transition-colors active:scale-95 duration-200"
             >
-              <ArrowLeft className="w-4 h-4 text-white" />
+              <span className="material-symbols-outlined text-primary text-[18px]">arrow_back</span>
             </button>
             <div>
-              <h1 className="font-bold text-white text-base">Route Details</h1>
-              <p className="text-xs text-slate-400">{path[0]} ➔ {path[path.length - 1]}</p>
+              <h1 className="font-bold text-on-surface text-base leading-tight">Route Details</h1>
+              <p className="text-xs text-on-surface-variant">{path[0]} ➔ {path[path.length - 1]}</p>
             </div>
           </div>
 
@@ -183,82 +182,82 @@ export default function RouteResultPage() {
       <div className="px-4 py-5 space-y-4 animate-fade-in relative z-10">
         {/* Tab Selector */}
         {shortest && minInterchanges && (
-          <div className="grid grid-cols-2 gap-2 bg-white/5 border border-white/5 p-1.5 rounded-xl backdrop-blur-md">
+          <div className="grid grid-cols-2 gap-2 bg-surface-container border border-outline-variant/30 p-1.5 rounded-xl">
             <button
               onClick={() => setActiveTab('shortest')}
               className={`py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                 activeTab === 'shortest'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                  ? 'bg-primary text-white shadow-md'
+                  : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
               }`}
             >
-              🚀 Fewest Stations
+              <span className="material-symbols-outlined text-[16px]">bolt</span> Fewest Stations
             </button>
             <button
               onClick={() => setActiveTab('minInterchanges')}
               className={`py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                 activeTab === 'minInterchanges'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                  ? 'bg-primary text-white shadow-md'
+                  : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
               }`}
             >
-              🔄 Fewest Transfers
+              <span className="material-symbols-outlined text-[16px]">sync_alt</span> Fewest Transfers
             </button>
             <button
               onClick={() => setActiveTab('shortestDistance')}
               className={`py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                 activeTab === 'shortestDistance'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                  ? 'bg-primary text-white shadow-md'
+                  : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
               }`}
             >
-              📍 Shortest Distance
+              <span className="material-symbols-outlined text-[16px]">pin_drop</span> Shortest Distance
             </button>
             <button
               onClick={() => setActiveTab('lessCongested')}
               className={`py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                 activeTab === 'lessCongested'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                  ? 'bg-primary text-white shadow-md'
+                  : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
               }`}
             >
-              🟢 Less Congested
+              <span className="material-symbols-outlined text-[16px]">group</span> Less Congested
             </button>
           </div>
         )}
 
         {/* Summary Cards */}
         <div className="grid grid-cols-4 gap-2">
-          <div className="glass-card p-2.5 text-center border border-white/5">
-            <Train className="w-4 h-4 text-indigo-400 mx-auto mb-1 animate-pulse" />
-            <div className="font-bold text-white text-base leading-none mb-1">{totalStations}</div>
-            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider scale-90">Stops</div>
+          <div className="bg-surface-container border border-outline-variant/30 p-2.5 text-center rounded-xl">
+            <span className="material-symbols-outlined text-primary text-[20px] mb-0.5 block">train</span>
+            <div className="font-bold text-on-surface text-base leading-none mb-1">{totalStations}</div>
+            <div className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider scale-90">Stops</div>
           </div>
-          <div className="glass-card p-2.5 text-center border border-white/5">
-            <Clock className="w-4 h-4 text-yellow-400 mx-auto mb-1" />
-            <div className="font-bold text-white text-base leading-none mb-1">{estimatedTime}</div>
-            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider scale-90">Minutes</div>
+          <div className="bg-surface-container border border-outline-variant/30 p-2.5 text-center rounded-xl">
+            <span className="material-symbols-outlined text-primary text-[20px] mb-0.5 block">schedule</span>
+            <div className="font-bold text-on-surface text-base leading-none mb-1">{estimatedTime}</div>
+            <div className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider scale-90">Minutes</div>
           </div>
-          <div className="glass-card p-2.5 text-center border border-white/5">
-            <ArrowLeftRight className="w-4 h-4 text-pink-400 mx-auto mb-1" />
-            <div className="font-bold text-white text-base leading-none mb-1">{interchanges.length}</div>
-            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider scale-90">Transfers</div>
+          <div className="bg-surface-container border border-outline-variant/30 p-2.5 text-center rounded-xl">
+            <span className="material-symbols-outlined text-primary text-[20px] mb-0.5 block">swap_horiz</span>
+            <div className="font-bold text-on-surface text-base leading-none mb-1">{interchanges.length}</div>
+            <div className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider scale-90">Transfers</div>
           </div>
-          <div className="glass-card p-2.5 text-center border border-white/5">
-            <span className="block text-sm mb-1 leading-none">📍</span>
-            <div className="font-bold text-white text-base leading-none mb-1">{distanceKm}</div>
-            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider scale-90">Distance</div>
+          <div className="bg-surface-container border border-outline-variant/30 p-2.5 text-center rounded-xl">
+            <span className="material-symbols-outlined text-primary text-[20px] mb-0.5 block">place</span>
+            <div className="font-bold text-on-surface text-base leading-none mb-1">{distanceKm}</div>
+            <div className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider scale-90">Distance</div>
           </div>
         </div>
 
         {/* Congestion Density Bar HUD */}
-        <div className="glass-card p-4 space-y-3 border border-white/5 bg-[#12141c]/40 backdrop-blur-md">
+        <div className="bg-surface-container border border-outline-variant/30 p-4 space-y-3 rounded-xl shadow-sm">
           <div className="flex justify-between items-center">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">👥 Route Congestion Index</h3>
+            <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">👥 Route Congestion Index</h3>
             <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-              avgCongestion < 40 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-              avgCongestion < 70 ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' :
-              'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+              avgCongestion < 40 ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' :
+              avgCongestion < 70 ? 'bg-yellow-500/10 text-yellow-600 border border-yellow-500/20' :
+              'bg-rose-500/10 text-rose-600 border border-rose-500/20'
             }`}>
               {avgCongestion < 40 ? 'Optimal Flow' : avgCongestion < 70 ? 'Moderate Load' : 'Heavy Congestion'}
             </span>
@@ -266,10 +265,10 @@ export default function RouteResultPage() {
           
           <div className="relative">
             <div className="flex mb-1.5 items-center justify-between">
-              <span className="text-[9px] font-bold uppercase text-indigo-300">Congestion Level</span>
-              <span className="text-xs font-black font-mono text-white">{avgCongestion}%</span>
+              <span className="text-[9px] font-bold uppercase text-primary">Congestion Level</span>
+              <span className="text-xs font-black font-mono text-on-surface">{avgCongestion}%</span>
             </div>
-            <div className="overflow-hidden h-2.5 rounded-full bg-white/5 p-[2px]">
+            <div className="overflow-hidden h-2.5 rounded-full bg-surface-variant p-[2px]">
               <div 
                 style={{ 
                   width: `${avgCongestion}%`, 
@@ -283,19 +282,19 @@ export default function RouteResultPage() {
         </div>
 
         {/* Upcoming Arrivals HUD */}
-        <div className="glass-card p-4 space-y-3 border border-white/5 bg-[#12141c]/40 backdrop-blur-md">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">🚊 Upcoming Station Arrivals</h3>
+        <div className="bg-surface-container border border-outline-variant/30 p-4 space-y-3 rounded-xl shadow-sm">
+          <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">🚊 Upcoming Station Arrivals</h3>
           <div className="space-y-2">
             {upcomingArrivals.map((train) => (
-              <div key={train.id} className="flex items-center justify-between bg-white/5 border border-white/5 rounded-xl p-3 hover:bg-white/10 transition-colors">
+              <div key={train.id} className="flex items-center justify-between bg-surface-container-low border border-outline-variant/20 rounded-xl p-3 hover:bg-surface-container-high transition-colors">
                 <div className="flex items-center gap-3">
                   <div className={`w-2.5 h-2.5 rounded-full`} style={{ backgroundColor: LINE_COLORS[train.line] || '#6366F1', boxShadow: `0 0 6px ${LINE_COLORS[train.line] || '#6366F1'}` }} />
                   <div>
-                    <p className="text-xs font-bold text-white leading-tight">To {train.dest}</p>
-                    <p className="text-[9px] text-slate-500 font-bold uppercase mt-0.5">{train.platform}</p>
+                    <p className="text-xs font-bold text-on-surface leading-tight">To {train.dest}</p>
+                    <p className="text-[9px] text-on-surface-variant font-bold uppercase mt-0.5">{train.platform}</p>
                   </div>
                 </div>
-                <span className="text-xs font-black text-indigo-300 font-mono animate-pulse">{train.eta}</span>
+                <span className="text-xs font-black text-primary font-mono animate-pulse">{train.eta}</span>
               </div>
             ))}
           </div>
@@ -303,15 +302,15 @@ export default function RouteResultPage() {
 
         {/* Interchange alert */}
         {interchanges.length > 0 && (
-          <div className="glass-card p-4 border-l-4 border-yellow-400 border-t border-r border-b border-white/5 bg-yellow-500/5">
-            <p className="text-xs font-bold text-yellow-400 mb-1 uppercase tracking-wider">⚡ Transfer Point</p>
-            <p className="text-xs text-slate-300 leading-relaxed">Transfer platform at: <span className="font-bold text-white">{interchanges.join(', ')}</span></p>
+          <div className="bg-surface-container border-l-4 border-yellow-500 border-t border-r border-b border-outline-variant/30 p-4 rounded-xl">
+            <p className="text-xs font-bold text-yellow-600 mb-1 uppercase tracking-wider">⚡ Transfer Point</p>
+            <p className="text-xs text-on-surface-variant leading-relaxed">Transfer platform at: <span className="font-bold text-on-surface">{interchanges.join(', ')}</span></p>
           </div>
         )}
 
         {/* Route Timeline */}
-        <div className="glass-card p-5 border border-white/5 bg-[#12141c]/30">
-          <h2 className="font-bold text-white mb-5 text-xs uppercase tracking-wider pl-1">Route Timeline</h2>
+        <div className="bg-surface-container border border-outline-variant/30 p-5 rounded-xl shadow-sm">
+          <h2 className="font-bold text-on-surface mb-5 text-xs uppercase tracking-wider pl-1">Route Timeline</h2>
           <div className="relative pl-1">
             {displayStations.map((station, idx) => {
               const isFirst = idx === 0;
@@ -324,22 +323,22 @@ export default function RouteResultPage() {
                   {/* Timeline dot & line */}
                   <div className="flex flex-col items-center">
                     <div
-                      className="w-3.5 h-3.5 rounded-full flex-shrink-0 z-10 border-2 border-white/20 transition-all duration-300"
+                      className="w-3.5 h-3.5 rounded-full flex-shrink-0 z-10 border-2 border-outline-variant/50 transition-all duration-300"
                       style={{ backgroundColor: lineColor, marginTop: 12, boxShadow: `0 0 8px ${lineColor}` }}
                     />
                     {!isLast && (
-                      <div className="w-0.5 flex-1 mt-0.5" style={{ backgroundColor: lineColor, opacity: 0.25, minHeight: 32 }} />
+                      <div className="w-0.5 flex-1 mt-0.5" style={{ backgroundColor: lineColor, opacity: 0.35, minHeight: 32 }} />
                     )}
                   </div>
 
                   {/* Station info */}
                   <div className="pb-6 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`font-${isFirst || isLast ? 'black text-white' : 'medium text-slate-200'} text-xs`}>
+                      <span className={`font-${isFirst || isLast ? 'black text-on-surface font-extrabold' : 'medium text-on-surface-variant'} text-xs`}>
                         {station.name}
                       </span>
                       {station.line && (
-                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${LINE_BG[station.line] || 'bg-slate-700 text-slate-300 border-slate-600'}`}>
+                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${LINE_BG[station.line] || 'bg-surface-variant text-on-surface-variant border-outline-variant/30'}`}>
                           {station.line}
                         </span>
                       )}
@@ -349,12 +348,12 @@ export default function RouteResultPage() {
                         </span>
                       )}
                       {isInterchange && (
-                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 shadow-[0_0_8px_rgba(234,179,8,0.1)]">
+                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-600 border border-yellow-500/20 shadow-[0_0_8px_rgba(234,179,8,0.1)]">
                           ↔ Platform Transfer
                         </span>
                       )}
-                      {isFirst && <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider">Start</span>}
-                      {isLast && <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider">Arrival</span>}
+                      {isFirst && <span className="text-[9px] font-bold text-primary uppercase tracking-wider">Start</span>}
+                      {isLast && <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider">Arrival</span>}
                     </div>
                   </div>
                 </div>
@@ -368,11 +367,11 @@ export default function RouteResultPage() {
           id="start-trip-btn"
           onClick={handleStartTrip}
           disabled={starting}
-          className="w-full btn-gradient text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 text-xs uppercase tracking-wider disabled:opacity-60 shadow-[0_4px_20px_rgba(99,102,241,0.3)] transition-all hover:scale-[1.02]"
+          className="w-full h-14 bg-primary text-on-primary rounded-xl font-title-md text-title-md shadow-lg flex items-center justify-center gap-sm active:scale-[0.98] transition-all disabled:opacity-70 font-bold uppercase tracking-wider"
         >
-          <Navigation2 className="w-4 h-4" />
-          {starting ? 'Starting...' : 'Start Tracking'}
-          <ChevronRight className="w-4 h-4" />
+          <span className="material-symbols-outlined">directions</span>
+          {starting ? 'Starting...' : 'Get Directions'}
+          <span className="material-symbols-outlined">chevron_right</span>
         </button>
       </div>
     </div>

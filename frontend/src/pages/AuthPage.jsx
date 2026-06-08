@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Mail, ArrowRight, ShieldCheck, RefreshCw, KeyRound, Sparkles, Navigation2 } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -59,11 +59,11 @@ export default function AuthPage() {
           document.getElementById('google-signin-target'),
           { 
             type: 'standard',
-            theme: 'filled_dark', 
+            theme: 'outline', 
             size: 'large', 
             text: 'continue_with',
-            shape: 'pill',
-            width: '100%',
+            shape: 'rectangular',
+            width: '280',
             logo_alignment: 'left'
           }
         );
@@ -101,8 +101,6 @@ export default function AuthPage() {
 
     setLoading(true);
     try {
-      // Calls the sign-up register endpoint on Render (creates user, no email sent)
-      // Then signup() internally calls Vercel /api/send-otp to send the email
       const res = await signup('', email, '');
       if (res.success) {
         setOtpUserId(res.userId || res.data?.userId);
@@ -192,7 +190,6 @@ export default function AuthPage() {
     setSuccessMsg('');
     setLoading(true);
     try {
-      // Pass email + name so Vercel function can send the email
       const res = await resendOtp(otpUserId, email, otpUserName);
       if (res.success) {
         setSuccessMsg('A new verification code has been sent!');
@@ -214,206 +211,221 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#07080d] px-4 pt-16 pb-24 relative overflow-hidden flex flex-col justify-center">
-      {/* Lights background layer */}
-      <div className="absolute top-10 left-1/4 w-[260px] h-[260px] bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none" />
-      <div className="absolute bottom-10 right-1/4 w-[240px] h-[240px] bg-purple-500/10 rounded-full blur-[80px] pointer-events-none" />
-
-      {/* Brand Header */}
-      <div className="text-center mb-8 relative z-10 animate-fade-in">
-        <div className="inline-flex items-center gap-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full px-3.5 py-1 text-[11px] font-semibold text-indigo-300 mb-3 shadow-[0_0_15px_rgba(99,102,241,0.05)]">
-          <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
-          Delhi Transit Guide
-        </div>
-        <h2 className="text-3xl font-black text-white leading-none tracking-tight">
-          Delhi MetroPulse
-        </h2>
-        <span className="text-xs font-bold tracking-widest text-slate-400 uppercase mt-2.5 block">
-          One-Stop Commuter Solution
-        </span>
+    <div className="bg-background font-body-lg text-on-background min-h-screen flex items-center justify-center p-md relative w-full overflow-y-auto">
+      {/* Decorative Background Elements for Modern UI Depth */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-primary/5 blur-[120px]"></div>
+        <div className="absolute -bottom-[10%] -right-[10%] w-[50%] h-[50%] rounded-full bg-tertiary/5 blur-[120px]"></div>
       </div>
 
-      {/* Main Glass Card Form Container */}
-      <div className="glass-card p-6 border border-white/5 bg-[#12141c]/50 backdrop-blur-2xl relative z-10 shadow-2xl rounded-2xl max-w-md mx-auto w-full transition-all duration-300">
-        {!showOtpScreen ? (
-          <div className="space-y-6">
-            {/* Action 1: Google login (placed prominently at top as requested) */}
-            <div className="space-y-3">
-              <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">
-                Fast Sign-In Options
-              </span>
-              <div className="flex justify-center w-full min-h-[46px]">
-                <div id="google-signin-target" className="w-full"></div>
-              </div>
-            </div>
+      {/* Main Auth Canvas */}
+      <main className="w-full max-w-[440px] flex flex-col items-center py-8">
+        {/* Brand Identity Section */}
+        <header className="text-center mb-xl">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-xl mb-md soft-shadow inner-glow text-white">
+            <span className="material-symbols-outlined text-[32px]">subway</span>
+          </div>
+          <h1 className="font-display-lg text-display-lg text-primary tracking-tight mb-xs">
+            METROPULSE
+          </h1>
+          <p className="font-title-md text-title-md text-on-surface-variant/80 tracking-wide uppercase text-[12px]">
+            Delhi Transit Node Solution
+          </p>
+        </header>
 
-            {/* Visual Divider */}
-            <div className="relative my-4 text-center">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-white/5"></div>
-              </div>
-              <span className="relative px-3 text-[9px] font-bold text-slate-500 uppercase tracking-widest bg-[#12141c]/50">
-                OR PASSWORDLESS EMAIL OTP
-              </span>
-            </div>
+        {/* Authentication Card */}
+        <div className="w-full glass-panel border border-outline-variant/30 rounded-xl p-xl soft-shadow">
+          {!showOtpScreen ? (
+            <div className="flex flex-col gap-lg">
+              {/* Google Sign-in */}
+              {!Capacitor.isNativePlatform() && (
+                <>
+                  <div className="flex flex-col items-center gap-sm">
+                    <div id="google-signin-target" className="flex justify-center w-full min-h-[44px]"></div>
+                  </div>
 
-            {/* Action 3: Passwordless Email Login */}
-            <form onSubmit={handleSendOtp} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-1">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
+                  {/* Divider */}
+                  <div className="flex items-center gap-sm">
+                    <div className="h-[1px] flex-1 bg-outline-variant/30"></div>
+                    <span className="font-label-md text-label-md text-on-surface-variant/60">OR</span>
+                    <div className="h-[1px] flex-1 bg-outline-variant/30"></div>
+                  </div>
+                </>
+              )}
+
+              {/* Email Form */}
+              <form onSubmit={handleSendOtp} className="flex flex-col gap-md">
+                <div className="flex flex-col gap-xs">
+                  <label className="font-label-md text-label-md text-on-surface-variant ml-xs" htmlFor="email">Email Address</label>
+                  <div className="relative group">
+                    <span className="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors text-[20px]">mail</span>
+                    <input 
+                      type="email"
+                      id="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="name@company.com"
+                      className="w-full h-12 pl-[48px] pr-md bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-body-sm text-body-sm text-on-surface"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="text-xs text-red-600 bg-red-100 border border-red-200 rounded-lg px-3 py-2 text-center animate-pulse">
+                    {error}
+                  </div>
+                )}
+                {successMsg && (
+                  <div className="text-xs text-green-700 bg-green-100 border border-green-200 rounded-lg px-3 py-2 text-center">
+                    {successMsg}
+                  </div>
+                )}
+
+                <button 
+                  type="submit" 
+                  disabled={loading}
+                  className="w-full h-12 bg-primary text-on-primary rounded-lg font-label-md text-label-md inner-glow hover:bg-primary-container transition-all active:scale-[0.98] soft-shadow flex items-center justify-center"
+                >
+                  {loading ? (
+                    <span className="flex gap-1">
+                      <span className="loading-dot bg-white" />
+                      <span className="loading-dot bg-white" />
+                      <span className="loading-dot bg-white" />
+                    </span>
+                  ) : (
+                    "Continue with Email"
+                  )}
+                </button>
+              </form>
+
+              {/* Divider */}
+              <div className="flex items-center gap-sm">
+                <div className="h-[1px] flex-1 bg-outline-variant/30"></div>
+                <span className="font-label-md text-label-md text-on-surface-variant/60">DIRECT ACCESS</span>
+                <div className="h-[1px] flex-1 bg-outline-variant/30"></div>
+              </div>
+
+              {/* Guest Login */}
+              <button 
+                onClick={handleGuestMode}
+                className="w-full h-12 flex items-center justify-center gap-sm bg-surface-container-lowest border border-outline-variant/50 rounded-lg font-label-md text-label-md text-on-surface hover:bg-surface-container-high transition-all active:scale-[0.98]"
+              >
+                <span className="material-symbols-outlined text-[20px] text-primary">explore_nearby</span>
+                Continue as Guest
+              </button>
+
+              <p className="font-body-sm text-body-sm text-center text-on-surface-variant/70 mt-sm">
+                By continuing, you agree to our <a className="text-primary hover:underline" href="#">Terms of Service</a> and <a class="text-primary hover:underline" href="#">Privacy Policy</a>.
+              </p>
+            </div>
+          ) : (
+            /* OTP Screen */
+            <form onSubmit={handleOtpSubmit} className="flex flex-col gap-lg">
+              <div className="text-center">
+                <span className="material-symbols-outlined text-primary text-[48px] animate-pulse">verified_user</span>
+                <h2 className="font-headline-lg-mobile text-headline-lg-mobile text-on-surface mt-xs font-extrabold">Email Verification</h2>
+                <p className="font-body-sm text-body-sm text-on-surface-variant/80 mt-sm">
+                  We've sent a 6-digit login code to <br /><span className="font-bold text-on-surface">{email}</span>.
+                </p>
+              </div>
+
+              {/* OTP Digits inputs */}
+              <div className="flex justify-center gap-sm" onPaste={handleOtpPaste}>
+                {otpDigits.map((digit, idx) => (
                   <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@example.com"
-                    className="w-full bg-[#0a0b10] border border-white/10 rounded-xl py-3 pl-10 pr-4 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition-colors"
+                    key={idx}
+                    ref={otpRefs[idx]}
+                    type="text"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleOtpChange(idx, e.target.value)}
+                    onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                    className="w-10 h-12 bg-surface-container-low border border-outline-variant/50 rounded-lg text-center text-lg font-black text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-mono"
                     required
                   />
-                </div>
+                ))}
               </div>
 
               {error && (
-                <div className="text-[11px] font-semibold text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2.5 text-center animate-pulse">
+                <div className="text-xs text-red-600 bg-red-100 border border-red-200 rounded-lg px-3 py-2 text-center animate-pulse">
                   {error}
                 </div>
               )}
               {successMsg && (
-                <div className="text-[11px] font-semibold text-green-400 bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-2.5 text-center">
+                <div className="text-xs text-green-700 bg-green-100 border border-green-200 rounded-lg px-3 py-2 text-center">
                   {successMsg}
                 </div>
               )}
 
-              <button
-                type="submit"
+              <button 
+                type="submit" 
                 disabled={loading}
-                className="w-full btn-gradient text-white font-black py-3.5 rounded-xl flex items-center justify-center gap-2 text-xs uppercase tracking-wider disabled:opacity-60 transition-all shadow-[0_4px_25px_rgba(99,102,241,0.2)]"
+                className="w-full h-12 bg-primary text-on-primary rounded-lg font-label-md text-label-md inner-glow hover:bg-primary-container transition-all active:scale-[0.98] soft-shadow flex items-center justify-center"
               >
                 {loading ? (
-                  <span className="flex gap-1.5 py-0.5">
-                    <span className="loading-dot" />
-                    <span className="loading-dot" />
-                    <span className="loading-dot" />
+                  <span className="flex gap-1">
+                    <span className="loading-dot bg-white" />
+                    <span className="loading-dot bg-white" />
+                    <span className="loading-dot bg-white" />
                   </span>
                 ) : (
-                  <>
-                    <span>Send Verification Passcode</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
+                  "Verify Passcode"
                 )}
               </button>
-            </form>
 
-            {/* Visual Divider */}
-            <div className="relative my-4 text-center">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-white/5"></div>
-              </div>
-              <span className="relative px-3 text-[9px] font-bold text-slate-500 uppercase tracking-widest bg-[#12141c]/50">
-                GUEST COMMUTER BYPASS
-              </span>
-            </div>
+              <div className="flex flex-col items-center gap-sm pt-sm text-center">
+                {canResend ? (
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    disabled={loading}
+                    className="font-label-md text-label-md text-primary hover:underline flex items-center gap-xs"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">refresh</span>
+                    Resend verification code
+                  </button>
+                ) : (
+                  <span className="font-body-sm text-body-sm text-on-surface-variant/80">
+                    Resend passcode in <span className="font-bold text-primary">{resendTimer}s</span>
+                  </span>
+                )}
 
-            {/* Action 2: Skip Sign Up / Guest Mode */}
-            <button
-              onClick={handleGuestMode}
-              className="w-full bg-[#1A1D27]/50 border border-white/5 hover:border-white/10 text-slate-300 font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 text-xs uppercase tracking-wider transition-all"
-            >
-              <Navigation2 className="w-4 h-4 text-slate-400 rotate-45" />
-              Skip Registration & Continue
-            </button>
-          </div>
-        ) : (
-          /* OTP Screen */
-          <form onSubmit={handleOtpSubmit} className="space-y-6 animate-slide-up">
-            <div className="text-center">
-              <div className="w-12 h-12 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-3 shadow-[0_0_15px_rgba(99,102,241,0.15)] text-indigo-400">
-                <ShieldCheck className="w-6 h-6 animate-pulse" />
-              </div>
-              <h3 className="text-lg font-black text-white">Email Verification</h3>
-              <p className="text-xs text-slate-400 mt-1 max-w-[280px] mx-auto leading-normal">
-                A 6-digit login code has been sent to <span className="font-semibold text-white">{email}</span>.
-              </p>
-            </div>
-
-            {/* Passcode Digits Inputs */}
-            <div className="flex justify-center gap-2" onPaste={handleOtpPaste}>
-              {otpDigits.map((digit, idx) => (
-                <input
-                  key={idx}
-                  ref={otpRefs[idx]}
-                  type="text"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleOtpChange(idx, e.target.value)}
-                  onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                  className="w-10 h-12 bg-[#0a0b10] border border-white/10 focus:border-indigo-500 rounded-lg text-center text-lg font-black text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all font-mono shadow-inner"
-                  required
-                />
-              ))}
-            </div>
-
-            {error && (
-              <div className="text-[11px] font-semibold text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2.5 text-center animate-pulse">
-                {error}
-              </div>
-            )}
-            {successMsg && (
-              <div className="text-[11px] font-semibold text-green-400 bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-2.5 text-center">
-                {successMsg}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full btn-gradient text-white font-black py-3.5 rounded-xl flex items-center justify-center gap-2 text-xs uppercase tracking-wider disabled:opacity-60 transition-all shadow-[0_4px_25px_rgba(99,102,241,0.2)]"
-            >
-              {loading ? (
-                <span className="flex gap-1.5 py-0.5">
-                  <span className="loading-dot" />
-                  <span className="loading-dot" />
-                  <span className="loading-dot" />
-                </span>
-              ) : (
-                <>
-                  <KeyRound className="w-4 h-4 text-indigo-200" />
-                  <span>Verify Login Passcode</span>
-                </>
-              )}
-            </button>
-
-            <div className="flex flex-col items-center gap-2 text-center pt-2">
-              {canResend ? (
                 <button
                   type="button"
-                  onClick={handleResendOtp}
-                  disabled={loading}
-                  className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 font-bold tracking-wide transition-colors"
+                  onClick={() => { setShowOtpScreen(false); setError(''); setSuccessMsg(''); }}
+                  className="font-label-md text-label-md text-on-surface-variant hover:text-on-surface uppercase tracking-wider mt-sm"
                 >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  Resend Login Passcode
+                  Change Email Address
                 </button>
-              ) : (
-                <span className="text-[11px] text-slate-500 font-medium">
-                  Didn't receive? Resend in{' '}
-                  <span className="font-bold text-indigo-300 font-mono">{resendTimer}s</span>
-                </span>
-              )}
-              
-              <button
-                type="button"
-                onClick={() => { setShowOtpScreen(false); setError(''); setSuccessMsg(''); }}
-                className="text-[10px] text-slate-500 hover:text-slate-300 transition-colors uppercase tracking-wider font-bold mt-2"
-              >
-                Back to Authentication
-              </button>
+              </div>
+            </form>
+          )}
+        </div>
+
+        {/* Secondary Information / Footer */}
+        <footer className="mt-xl text-center">
+          <div className="flex items-center justify-center gap-md">
+            <div className="flex items-center gap-xs">
+              <span className="material-symbols-outlined text-[16px] text-on-surface-variant/40">verified_user</span>
+              <span className="font-label-md text-label-md text-on-surface-variant/60">Secure SSL Transit</span>
             </div>
-          </form>
-        )}
+            <div className="w-1 h-1 rounded-full bg-outline-variant/50"></div>
+            <div className="flex items-center gap-xs">
+              <span className="material-symbols-outlined text-[16px] text-on-surface-variant/40">public</span>
+              <span className="font-label-md text-label-md text-on-surface-variant/60">v4.2.0-stable</span>
+            </div>
+          </div>
+        </footer>
+      </main>
+
+      {/* Contextual Visual - Background Card Decor */}
+      <div className="hidden lg:block fixed right-[10%] top-1/2 -translate-y-1/2 w-[380px] h-[520px] glass-panel border border-outline-variant/20 rounded-[32px] overflow-hidden soft-shadow opacity-40 rotate-3 translate-x-12 -z-20">
+        <img 
+          alt="Futuristic transit hub" 
+          className="w-full h-full object-cover grayscale brightness-110" 
+          src="https://lh3.googleusercontent.com/aida/AP1WRLsjPoEkej0dTcKU8_WoFejAO3wJac9uZXzH0-pwXZMzZ5Vy3GfDfSO-BdRrkfypnwf8Jp4Ty-WaMPmk45G5KJzEOtdZNGBLhn9046kuvR2m94KbDjjYh4D_2ezJQo9iWSdShQjbDY51BXAu74I1iZXo7_reEHFpuKm325pd-WL6YOBC6Bd0TKNlllWL1BqLD01ngKB7YA9T_0jlfxWjqtqT5ywQeH2mC_1uvhi1l-oLvZauiUQb8RdAsIA"
+        />
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-package com.metro.tracker;
+package com.trackmymetro.app;
 
 import com.getcapacitor.BridgeActivity;
 

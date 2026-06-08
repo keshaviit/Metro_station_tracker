@@ -4,6 +4,81 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Dynamic Theme CSS Variables ───────────────────────────── */
+:root {
+  /* Aura Professional Light Theme (Default) */
+  --surface: #fcf8ff;
+  --surface-dim: #dbd8e4;
+  --surface-bright: #fcf8ff;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f5f2fe;
+  --surface-container: #efecf8;
+  --surface-container-high: #e9e6f3;
+  --surface-container-highest: #e4e1ed;
+  --surface-variant: #e4e1ed;
+  --on-surface: #1b1b23;
+  --on-surface-variant: #464554;
+  --background: #fcf8ff;
+  --on-background: #1b1b23;
+  --primary: #4648d4;
+  --on-primary: #ffffff;
+  --primary-container: #6063ee;
+  --on-primary-container: #fffbff;
+  --outline: #767586;
+  --outline-variant: #c7c4d7;
+
+  /* Legacy variables mappings */
+  --bg-primary: #fcf8ff;
+  --text-primary: #1b1b23;
+  --text-secondary: #464554;
+  --text-muted: #767586;
+  --card-bg: rgba(255, 255, 255, 0.85);
+  --card-border: rgba(199, 196, 215, 0.3);
+  --card-shadow: 0 4px 20px rgba(30, 41, 59, 0.05);
+  --input-bg: #FFFFFF;
+  --input-border: rgba(118, 117, 134, 0.3);
+  --accent-color: #4648D4;
+  --nav-bg: rgba(252, 248, 255, 0.85);
+  --nav-border: rgba(199, 196, 215, 0.3);
+}
+
+.dark {
+  /* Aura Professional Dark Theme */
+  --surface: #121118;
+  --surface-dim: #0c0b0f;
+  --surface-bright: #1c1b22;
+  --surface-container-lowest: #0a090e;
+  --surface-container-low: #1a1920;
+  --surface-container: #22212a;
+  --surface-container-high: #2d2b36;
+  --surface-container-highest: #383642;
+  --surface-variant: #484554;
+  --on-surface: #fcf8ff;
+  --on-surface-variant: #c7c4d7;
+  --background: #121118;
+  --on-background: #fcf8ff;
+  --primary: #c0c1ff;
+  --on-primary: #07006c;
+  --primary-container: #2f2ebe;
+  --on-primary-container: #e1e0ff;
+  --outline: #918f9e;
+  --outline-variant: #484554;
+
+  /* Legacy dark mode mapping */
+  --bg-primary: #121118;
+  --text-primary: #fcf8ff;
+  --text-secondary: #c7c4d7;
+  --text-muted: #918f9e;
+  --card-bg: rgba(34, 33, 42, 0.7);
+  --card-border: rgba(255, 255, 255, 0.05);
+  --card-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
+  --input-bg: #1a1920;
+  --input-border: rgba(255, 255, 255, 0.1);
+  --accent-color: #c0c1ff;
+  --nav-bg: rgba(18, 17, 24, 0.85);
+  --nav-border: rgba(255, 255, 255, 0.05);
+}
+
 /* ── Base Reset ─────────────────────────────────────────────── */
 * {
   box-sizing: border-box;
@@ -18,21 +93,25 @@ html, body, #root {
 
 body {
   font-family: 'Inter', system-ui, sans-serif;
-  background-color: #0A0B10; /* Deeper cosmic black */
+  background-color: var(--bg-primary);
   background-image: 
     radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.03) 0%, transparent 50%),
     radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.03) 0%, transparent 50%);
   background-attachment: fixed;
-  color: #F8FAFC;
+  color: var(--text-primary);
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
 }
 
+.light body {
+  background-image: none !important;
+}
+
 /* ── Scrollbar ─────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: #1A1D27; }
-::-webkit-scrollbar-thumb { background: #3B3F52; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #6366F1; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-color); }
 
 /* ── Antigravity Tech Grid ──────────────────────────────────── */
 .tech-grid {
@@ -46,6 +125,12 @@ body {
   z-index: 0;
 }
 
+.light .tech-grid {
+  background-image: 
+    linear-gradient(to right, rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.02) 1px, transparent 1px);
+}
+
 /* ── Light Leaks (Ambient Glows) ────────────────────────────── */
 .light-leak-violet {
   position: absolute;
@@ -55,6 +140,10 @@ body {
   filter: blur(40px);
   pointer-events: none;
   z-index: 0;
+}
+
+.light .light-leak-violet {
+  display: none !important;
 }
 
 .light-leak-cyan {
@@ -67,18 +156,25 @@ body {
   z-index: 0;
 }
 
+.light .light-leak-cyan {
+  display: none !important;
+}
+
 /* ── Floating Glass Card ────────────────────────────────────── */
 .glass-card {
-  background: rgba(18, 20, 28, 0.5); /* More translucent */
-  backdrop-filter: blur(24px); /* Stronger blur for ethereal feel */
+  background: var(--card-bg);
+  backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  border-top: 1px solid rgba(255, 255, 255, 0.08); /* Subtle top light catch */
-  border-left: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--card-border);
   border-radius: 20px;
-  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.01);
+  box-shadow: var(--card-shadow);
   position: relative;
   overflow: hidden;
+}
+
+.light .glass-card {
+  border-top: 1px solid rgba(255, 255, 255, 0.6) !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.4) !important;
 }
 
 .glass-card-glow::after {
@@ -194,11 +290,11 @@ body {
   left: 0;
   right: 0;
   z-index: 1000;
-  background: rgba(10, 11, 16, 0.85); /* Darker, higher blur */
+  background: var(--nav-bg);
   backdrop-filter: blur(30px);
   -webkit-backdrop-filter: blur(30px);
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+  border-top: 1px solid var(--nav-border);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.15);
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
@@ -213,13 +309,28 @@ body {
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
 }
 
+.light .leaflet-popup-content-wrapper {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  color: #1B1B23 !important;
+}
+
 .leaflet-popup-tip {
   background: rgba(26, 29, 39, 0.95) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
+.light .leaflet-popup-tip {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
 .leaflet-popup-close-button {
   color: #94A3B8 !important;
+}
+
+.light .leaflet-popup-close-button {
+  color: #464554 !important;
 }
 
 /* ── Leaflet Tooltip Custom Styling ───────────────────────────── */
@@ -238,6 +349,12 @@ body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
 }
 
+.light .station-map-tooltip {
+  background: rgba(255, 255, 255, 0.8) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  color: #1B1B23 !important;
+}
+
 .station-map-tooltip::before {
   display: none !important; /* Hide standard white tooltip arrow pointer */
 }
@@ -245,6 +362,10 @@ body {
 /* Glowing Neon Polyline effect */
 .leaflet-interactive {
   filter: drop-shadow(0 0 3px rgba(99, 102, 241, 0.3));
+}
+
+.light .leaflet-interactive {
+  filter: drop-shadow(0 0 2px rgba(70, 72, 212, 0.3));
 }
 
 /* ── Safe Area Utility Classes for Notch & Mobile Support ──────────────── */
@@ -266,6 +387,120 @@ body {
 .bottom-safe {
   bottom: env(safe-area-inset-bottom, 0px) !important;
 }
+
+/* ── Light Mode Color Corrections & Accessibility ────────────────────────── */
+.light {
+  color-scheme: light;
+}
+
+/* Override standard text-white in light mode to be dark, unless inside a gradient button/specific colored elements */
+.light :not(.btn-gradient):not(.bg-primary):not(.bg-indigo-600):not(.bg-blue-500):not(.bg-red-500):not(.bg-green-500):not(.bg-rose-500):not(.bg-violet-500) > .text-white,
+.light .text-white:not(.btn-gradient):not(.bg-primary):not(.bg-indigo-600):not(.bg-blue-500):not(.bg-red-500):not(.bg-green-500):not(.bg-rose-500):not(.bg-violet-500) {
+  color: var(--text-primary) !important;
+}
+
+/* Override text-slate-300 and text-slate-400 for high-contrast light legibility */
+.light .text-slate-200,
+.light .text-slate-300,
+.light .text-slate-400 {
+  color: var(--text-secondary) !important;
+}
+
+.light .text-slate-500 {
+  color: var(--text-muted) !important;
+}
+
+/* High legibility inputs */
+.light input {
+  background-color: var(--input-bg);
+  border-color: var(--input-border);
+  color: var(--text-primary);
+}
+
+.light input::placeholder {
+  color: var(--text-muted) !important;
+  opacity: 0.6;
+}
+
+/* Keep map container bright and clear */
+.light .leaflet-container {
+  background: #FCF8FF !important;
+}
+.light .leaflet-tile {
+  filter: none !important; /* Standard OSM tile light mode colors */
+}
+
+/* Route timeline visual updates */
+.light .route-line::before {
+  background: linear-gradient(to bottom, var(--accent-color), #E2E8F0) !important;
+}
+
+/* ── Aura Professional M3 Specific Classes ──────────────────────── */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.dark .glass-panel {
+  background: rgba(34, 33, 42, 0.7);
+}
+.soft-shadow {
+  box-shadow: 0 4px 12px rgba(30, 41, 59, 0.05);
+}
+.inner-glow {
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
+}
+.dark .inner-glow {
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+}
+.transit-timeline {
+  position: relative;
+}
+.transit-timeline::before {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 24px;
+  bottom: 24px;
+  width: 2px;
+  background: #F1F5F9;
+}
+.dark .transit-timeline::before {
+  background: rgba(255, 255, 255, 0.05);
+}
+.timeline-gradient {
+  background: linear-gradient(to bottom, #4648d4 64%, #e4e1ed 64%);
+}
+.dark .timeline-gradient {
+  background: linear-gradient(to bottom, #c0c1ff 64%, #383642 64%);
+}
+
+/* Force white text in both light/dark themes, especially overlays */
+.text-white-force {
+  color: #ffffff !important;
+}
+
+/* Schematic Map Interactive Styles */
+.map-viewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--surface-container-low);
+  cursor: grab;
+}
+.map-viewport:active {
+  cursor: grabbing;
+}
+.map-zoom-content {
+  position: absolute;
+  transform-origin: 0 0;
+  transition: transform 0.08s cubic-bezier(0.1, 0.9, 0.2, 1);
+  user-select: none;
+  -webkit-user-drag: none;
+  touch-action: none;
+}
+
 
 
 
