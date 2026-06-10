@@ -21,17 +21,18 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["navigation", "travel", "utilities"],
   "shortcuts": [
     {
-      "name": "Find Route",
-      "url": "/",
-      "description": "Search for a metro route"
+      "name": "Commute to Work",
+      "url": "/?quick_commute=work",
+      "description": "Start commute to office/work",
+      "icons": [{ "src": "/metro-icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Live Track",
-      "url": "/track",
-      "description": "Track live journey"
+      "name": "Commute to Home",
+      "url": "/?quick_commute=home",
+      "description": "Start commute to home",
+      "icons": [{ "src": "/metro-icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

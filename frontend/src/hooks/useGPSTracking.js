@@ -32,9 +32,8 @@ async function triggerBackgroundNotification(title, body) {
             title,
             body,
             id: Math.floor(Math.random() * 10_000_000),
-            schedule: { at: new Date(Date.now() + 500), allowWhileIdle: true },
+            schedule: { allowWhileIdle: true }, // Immediate delivery, no "at" date
             channelId: 'metro_alerts',
-            // Note: vibration & sound are configured on the channel, not here
           }
         ]
       });
@@ -46,6 +45,21 @@ async function triggerBackgroundNotification(title, body) {
     }
   } catch (err) {
     console.error('[BG Notify] Failed:', err);
+  }
+}
+
+// ── Voice Alert Synthesis helper ───────────────────────────────────────────────
+function speakVoice(text) {
+  try {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+  } catch (err) {
+    console.error('Speech synthesis failed:', err);
   }
 }
 
@@ -70,6 +84,14 @@ export function useGPSTracking() {
   const lastLocalAlertRef      = useRef(-1);  // stops value at which we last fired a LOCAL alert
   const lastBackendAlertRef    = useRef(-1);  // stops value from last backend response alert
   const stopsRemainingCacheRef = useRef(null); // last known stopsRemaining from backend
+
+  // Throttling references to prevent excessive React re-renders on GPS jitter
+  const lastGpsDispatchTimeRef = useRef(0);
+  const lastGpsCoordsRef       = useRef({ lat: 0, lng: 0, accuracy: 0 });
+
+  // Interchange alert references to prevent duplicated triggers
+  const lastAlertedInterchangeBeforeIndexRef = useRef(-1);
+  const lastAlertedInterchangeAtIndexRef       = useRef(-1);
 
   const tripIdRef = useRef(state.tripId);
   useEffect(() => { tripIdRef.current = state.tripId; }, [state.tripId]);
@@ -131,6 +153,148 @@ export function useGPSTracking() {
     }
   }, []);
 
+  // ── Interchange alert engine ─────────────────────────────────────────────────
+  const checkInterchangeAlert = useCallback((currentIndex, stationDetails) => {
+    if (!stationDetails || stationDetails.length === 0) return;
+
+    // 1. Alert one station before the interchange
+    const nextIdx = currentIndex + 1;
+    if (nextIdx > 0 && nextIdx < stationDetails.length - 1) {
+      const prev = stationDetails[nextIdx - 1];
+      const next = stationDetails[nextIdx + 1];
+      if (prev && next && prev.line !== next.line) {
+        if (lastAlertedInterchangeBeforeIndexRef.current !== nextIdx) {
+          lastAlertedInterchangeBeforeIndexRef.current = nextIdx;
+          const msg = `Next station is ${stationDetails[nextIdx].name}. Please prepare to interchange to the ${next.line} Line.`;
+          triggerBackgroundNotification('🔄 Interchange Ahead', msg);
+          speakVoice(msg);
+        }
+      }
+    }
+
+    // 2. Alert when arriving at the interchange station itself
+    if (currentIndex > 0 && currentIndex < stationDetails.length - 1) {
+      const prev = stationDetails[currentIndex - 1];
+      const next = stationDetails[currentIndex + 1];
+      if (prev && next && prev.line !== next.line) {
+        if (lastAlertedInterchangeAtIndexRef.current !== currentIndex) {
+          lastAlertedInterchangeAtIndexRef.current = currentIndex;
+          const msg = `Arrived at ${stationDetails[currentIndex].name}. Please switch to the ${next.line} Line.`;
+          triggerBackgroundNotification('🔄 Interchange Station', msg);
+          speakVoice(msg);
+        }
+      }
+    }
+  }, []);
+
+  // ── Client-side local prediction solver (for offline or disconnected modes) ──
+  const updateLocalPrediction = useCallback((lat, lng, accuracy) => {
+    const route = routeRef.current;
+    const stationDetails = route?.stationDetails || [];
+    if (stationDetails.length === 0) return;
+
+    const destination = stationDetails[stationDetails.length - 1];
+    const destinationName = destination?.name || 'your destination';
+
+    // 1. Calculate distance to each station on our route
+    const candidates = stationDetails
+      .map((station, index) => {
+        if (!station.lat || !station.lng) return null;
+        const dist = getDistanceMeters(lat, lng, station.lat, station.lng);
+        return { station, distanceMeters: dist, index };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.distanceMeters - b.distanceMeters);
+
+    if (candidates.length === 0) return;
+
+    // Get current index from stopsRemainingCacheRef or default to 0
+    const currentIdx = stopsRemainingCacheRef.current !== null
+      ? Math.max(0, stationDetails.length - 1 - stopsRemainingCacheRef.current)
+      : 0;
+
+    let predictedStation = null;
+    let predictedIndex = currentIdx;
+    let method = 'in-transit';
+
+    // Threshold radius (meters) matching backend logic
+    const STATION_MATCH_RADIUS = Math.min(500, Math.max(300, 300 + accuracy));
+
+    // A. Check if the user is close to any future station on the route path
+    const futureStations = candidates.filter(c => c.index > currentIdx);
+    const closestFuture = futureStations.find(c => c.distanceMeters <= STATION_MATCH_RADIUS);
+    if (closestFuture) {
+      predictedStation = closestFuture.station.name;
+      predictedIndex = closestFuture.index;
+      method = 'gps+route';
+    }
+
+    // B. Check if the user is still at the current expected station
+    if (!predictedStation) {
+      const currentCandidate = candidates.find(c => c.index === currentIdx);
+      if (currentCandidate && currentCandidate.distanceMeters <= STATION_MATCH_RADIUS) {
+        predictedStation = currentCandidate.station.name;
+        predictedIndex = currentIdx;
+        method = 'gps+route';
+      }
+    }
+
+    // C. Check off-route: closest station globally is NOT on/near current segment
+    if (!predictedStation) {
+      const closestGlobal = candidates[0];
+      if (Math.abs(closestGlobal.index - currentIdx) > 1 && closestGlobal.distanceMeters <= 300) {
+        predictedStation = closestGlobal.station.name;
+        predictedIndex = closestGlobal.index;
+        method = 'off-route';
+      }
+    }
+
+    // D. In-transit fallback
+    if (!predictedStation) {
+      predictedStation = stationDetails[currentIdx]?.name || route.path[0];
+      predictedIndex = currentIdx;
+      method = 'in-transit';
+    }
+
+    const stopsRemaining = stationDetails.length - 1 - predictedIndex;
+    stopsRemainingCacheRef.current = stopsRemaining;
+
+    const nextStation = stationDetails[predictedIndex + 1]?.name || destinationName;
+
+    // Visited stations tracking
+    const visited = [];
+    for (let i = 0; i <= predictedIndex; i++) {
+      visited.push(stationDetails[i].name);
+    }
+
+    const isOffRoute = method === 'off-route';
+    const warningMessage = isOffRoute
+      ? 'You have gone off-route! Tap Recalculate to get a new route from your current location.'
+      : '';
+
+    const localPred = {
+      currentStation: predictedStation,
+      nextStation,
+      stopsRemaining,
+      currentIndex: predictedIndex,
+      shouldAlert: stopsRemaining <= 2,
+      confidence: accuracy <= 100 ? 'high' : 'medium',
+      method: `${method}-local`,
+      visitedStations: visited,
+      isOffRoute,
+      isWrongDirection: false,
+      warningMessage,
+    };
+
+    dispatch({ type: 'SET_PREDICTION', payload: localPred });
+
+    // Handle offline alarms triggering
+    if (stopsRemaining <= 3) {
+      fireAlert(stopsRemaining, nextStation, destinationName, 'local');
+    }
+    checkInterchangeAlert(predictedIndex, stationDetails);
+  }, [dispatch, fireAlert, checkInterchangeAlert]);
+
   // ── Local proximity check (instant, no network needed) ──────────────────────
   const checkLocalProximity = useCallback((lat, lng) => {
     const route = routeRef.current;
@@ -148,6 +312,9 @@ export function useGPSTracking() {
       if (!s.lat || !s.lng) continue;
       const dist = getDistanceMeters(lat, lng, s.lat, s.lng);
       if (dist <= LOCAL_ALERT_RADIUS) {
+        // Proactively check for interchange alarms offline
+        checkInterchangeAlert(i, stationDetails);
+
         const remaining = stationDetails.length - 1 - i; // stops from station i to end
         const nextStation = stationDetails[i + 1]?.name || destinationName;
         if (remaining <= 3) {
@@ -156,11 +323,23 @@ export function useGPSTracking() {
         break;
       }
     }
-  }, [fireAlert]);
+  }, [fireAlert, checkInterchangeAlert]);
 
   // ── Main location handler ────────────────────────────────────────────────────
   const processLocation = useCallback((lat, lng, accuracy) => {
-    dispatch({ type: 'SET_LOCATION', payload: { lat, lng, accuracy } });
+    // Throttled UI state dispatching to resolve lag on physical devices
+    const now = Date.now();
+    const shouldDispatch =
+      now - lastGpsDispatchTimeRef.current > 3000 || // at least 3 seconds
+      !lastGpsCoordsRef.current.lat ||
+      getDistanceMeters(lat, lng, lastGpsCoordsRef.current.lat, lastGpsCoordsRef.current.lng) > 15 || // > 15m shift
+      Math.abs(accuracy - lastGpsCoordsRef.current.accuracy) > 15; // > 15m accuracy shift
+
+    if (shouldDispatch) {
+      dispatch({ type: 'SET_LOCATION', payload: { lat, lng, accuracy } });
+      lastGpsDispatchTimeRef.current = now;
+      lastGpsCoordsRef.current = { lat, lng, accuracy };
+    }
 
     // 1. Immediate local proximity check — zero network latency
     checkLocalProximity(lat, lng);
@@ -172,12 +351,16 @@ export function useGPSTracking() {
       cached != null && cached <= 3 ? POLL_NEAR     :
       POLL_BASE;
 
-    const now = Date.now();
     if (now - lastSentRef.current < interval) return;
     lastSentRef.current = now;
 
     const activeTripId = tripIdRef.current;
     if (!activeTripId) return;
+
+    if (activeTripId.startsWith('local-')) {
+      updateLocalPrediction(lat, lng, accuracy);
+      return;
+    }
 
     // 3. Fire backend call in parallel (non-blocking)
     const route = routeRef.current;
@@ -192,17 +375,26 @@ export function useGPSTracking() {
         const remaining = res.data.stopsRemaining;
         stopsRemainingCacheRef.current = remaining;
 
+        // Perform online interchange check
+        const currentIndex = res.data.currentIndex;
+        if (currentIndex != null) {
+          checkInterchangeAlert(currentIndex, stationDetails);
+        }
+
         if (remaining != null && remaining <= 3) {
           const destinationName = destination?.name || 'your destination';
           const nextStation = res.data.nextStation || destinationName;
           fireAlert(remaining, nextStation, destinationName, 'backend');
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.warn('[GPS] Network location update failed, falling back to local prediction solver');
+        updateLocalPrediction(lat, lng, accuracy);
+      });
 
     // 4. Also send via WebSocket (even faster for foreground)
     sendGpsUpdate(activeTripId, lat, lng, accuracy);
-  }, [dispatch, sendGpsUpdate, checkLocalProximity, fireAlert]);
+  }, [dispatch, sendGpsUpdate, checkLocalProximity, fireAlert, checkInterchangeAlert, updateLocalPrediction]);
 
   // ── Start / Stop Tracking ────────────────────────────────────────────────────
   const startTracking = useCallback(async () => {
@@ -213,6 +405,8 @@ export function useGPSTracking() {
     lastLocalAlertRef.current  = -1;
     lastBackendAlertRef.current = -1;
     stopsRemainingCacheRef.current = null;
+    lastAlertedInterchangeBeforeIndexRef.current = -1;
+    lastAlertedInterchangeAtIndexRef.current = -1;
     localStorage.removeItem('bg_last_alerted_stop');
 
     if (Capacitor.isNativePlatform()) {
@@ -223,7 +417,7 @@ export function useGPSTracking() {
             backgroundTitle: 'Metro Tracker Active',
             requestPermissions: true,
             stale: false,
-            distanceFilter: 5,  // 5m sensitivity (was 10m)
+            distanceFilter: 5,  // 5m sensitivity
           },
           function callback(location, error) {
             if (error) { console.error('Background Geo Error:', error); return; }

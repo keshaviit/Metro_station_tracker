@@ -66,9 +66,12 @@ function AppContent() {
       // 2. Request Notification permission & set up channel
       try {
         if (Capacitor.isNativePlatform()) {
-          // Always request — if already granted, this is a no-op
-          const result = await LocalNotifications.requestPermissions();
-          console.log('[App] Notification permission result:', result.display);
+          const hasRequested = localStorage.getItem('has_requested_notifications');
+          if (!hasRequested) {
+            const result = await LocalNotifications.requestPermissions();
+            console.log('[App] Notification permission result:', result.display);
+            localStorage.setItem('has_requested_notifications', 'true');
+          }
 
           // Delete old channel first so Android re-reads our channel settings.
           // (Android caches channel config forever — delete forces a fresh creation.)
@@ -86,7 +89,11 @@ function AppContent() {
           });
           console.log('[App] Notification channel created: metro_alerts');
         } else if ('Notification' in window && Notification.permission !== 'granted') {
-          await Notification.requestPermission();
+          const hasRequested = localStorage.getItem('has_requested_notifications');
+          if (!hasRequested) {
+            await Notification.requestPermission();
+            localStorage.setItem('has_requested_notifications', 'true');
+          }
         }
       } catch (err) {
         console.error('Failed to request notifications permission:', err);

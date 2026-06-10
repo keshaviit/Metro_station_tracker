@@ -4,6 +4,7 @@ import { useMetro } from '../context/MetroContext';
 import { useGPSTracking } from '../hooks/useGPSTracking';
 import { useNotification } from '../hooks/useNotification';
 import { metroAPI } from '../services/api';
+import MetroGraph from '../services/routeEngine';
 import { Capacitor } from '@capacitor/core';
 
 const LINE_COLORS = {
@@ -73,10 +74,27 @@ function cancelVibration() {
   }
 }
 
+// ── Voice Alert Synthesis helper ───────────────────────────────────────────────
+function speakVoice(text) {
+  try {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+  } catch (err) {
+    console.error('Speech synthesis failed:', err);
+  }
+}
+
 // ── Main TrackingPage ───────────────────────────────────────────────────────────
 export default function TrackingPage() {
   const { state, dispatch } = useMetro();
   const lastAlertedStopsRef = useRef(null);
+  const lastAlertedInterchangeBeforeRef = useRef(-1);
+  const lastAlertedInterchangeAtRef = useRef(-1);
   const navigate = useNavigate();
   const { startTracking, stopTracking } = useGPSTracking();
   const { permission, requestPermission, notify } = useNotification();
@@ -182,25 +200,34 @@ export default function TrackingPage() {
       if (lastAlertedStopsRef.current !== 3) {
         lastAlertedStopsRef.current = 3;
         startLoopingAlarm('approaching');
-        notify('🚇 3 Stations to Go!', `${destinationName} is 3 stops away. Get ready!`);
+        const msg = `${destinationName} is 3 stops away. Get ready!`;
+        notify('🚇 3 Stations to Go!', msg);
+        speakVoice(`${destinationName} is three stations away. Please get ready.`);
       }
     } else if (remaining === 2) {
       if (lastAlertedStopsRef.current !== 2) {
         lastAlertedStopsRef.current = 2;
         startLoopingAlarm('next-to-next');
-        notify('🔔 Next-to-Next Station Alert!', `Approaching ${prediction.nextStation || 'your destination'}. Get ready!`);
+        const nextName = prediction.nextStation || destinationName;
+        const msg = `Approaching ${nextName}. Prepare to deboard soon!`;
+        notify('🔔 Next-to-Next Station Alert!', msg);
+        speakVoice(`Approaching ${nextName}. Prepare to deboard soon.`);
       }
     } else if (remaining === 1) {
       if (lastAlertedStopsRef.current !== 1) {
         lastAlertedStopsRef.current = 1;
         startLoopingAlarm('next');
-        notify('🚨 Next Station Alert!', `The very next station is ${destinationName}. Prepare to deboard!`);
+        const msg = `The very next station is ${destinationName}. Prepare to deboard!`;
+        notify('🚨 Next Station Alert!', msg);
+        speakVoice(`The next station is ${destinationName}. Please prepare to deboard.`);
       }
     } else if (remaining === 0) {
       if (lastAlertedStopsRef.current !== 0) {
         lastAlertedStopsRef.current = 0;
         startLoopingAlarm('arrived');
-        notify('🎉 Deboard Now!', `You have arrived at ${destinationName}!`);
+        const msg = `You have arrived at ${destinationName}!`;
+        notify('🎉 Deboard Now!', msg);
+        speakVoice(`You have arrived at ${destinationName}. Please deboard now.`);
         stopTracking();
         if (state.tripId) {
           metroAPI.endTrip(state.tripId).catch(() => {});
@@ -227,6 +254,44 @@ export default function TrackingPage() {
     }
   }, [prediction?.stopsRemaining, prediction?.nextStation, destinationName, state.tripId, stopTracking, notify, startLoopingAlarm, clearLoopingAlarm, activeAlarm]);
 
+  // Interchange Alerts effect (Voice + Notification guidance)
+  useEffect(() => {
+    const currentIndex = prediction?.currentIndex;
+    const stationDetails = route?.stationDetails;
+    if (currentIndex == null || !stationDetails || stationDetails.length === 0) return;
+
+    // 1. One station before interchange
+    const nextIdx = currentIndex + 1;
+    if (nextIdx > 0 && nextIdx < stationDetails.length - 1) {
+      const prev = stationDetails[nextIdx - 1];
+      const next = stationDetails[nextIdx + 1];
+      if (prev && next && prev.line !== next.line) {
+        if (lastAlertedInterchangeBeforeRef.current !== nextIdx) {
+          lastAlertedInterchangeBeforeRef.current = nextIdx;
+          const interchangeName = stationDetails[nextIdx].name;
+          const msg = `Next station is ${interchangeName}. Please prepare to interchange to the ${next.line} Line.`;
+          notify('🔄 Interchange Ahead', msg);
+          speakVoice(`Next station is ${interchangeName}. Please prepare to interchange to the ${next.line} Line.`);
+        }
+      }
+    }
+
+    // 2. Arrived at interchange station
+    if (currentIndex > 0 && currentIndex < stationDetails.length - 1) {
+      const prev = stationDetails[currentIndex - 1];
+      const next = stationDetails[currentIndex + 1];
+      if (prev && next && prev.line !== next.line) {
+        if (lastAlertedInterchangeAtRef.current !== currentIndex) {
+          lastAlertedInterchangeAtRef.current = currentIndex;
+          const interchangeName = stationDetails[currentIndex].name;
+          const msg = `Arrived at ${interchangeName}. Please switch to the ${next.line} Line.`;
+          notify('🔄 Interchange Station', msg);
+          speakVoice(`Arrived at ${interchangeName}. Please switch to the ${next.line} Line.`);
+        }
+      }
+    }
+  }, [prediction?.currentIndex, route?.stationDetails, notify]);
+
   const handleEndTrip = async () => {
     clearLoopingAlarm();
     stopTracking();
@@ -251,10 +316,83 @@ export default function TrackingPage() {
   };
 
   const handleRecalculate = async () => {
-    if (!prediction?.currentStation || !destinationName || !state.tripId) return;
+    const currentIdx = prediction?.currentIndex ?? 0;
+    const currentStation = prediction?.currentStation || route.path[currentIdx] || route.path[0];
+    if (!currentStation || !destinationName || !state.tripId) return;
     setRecalculating(true);
+
+    const isLocalTrip = state.tripId.startsWith('local-');
+
+    if (isLocalTrip) {
+      // Local recalculation fallback
+      try {
+        const cached = JSON.parse(localStorage.getItem('metro_stations_cache')) || [];
+        if (cached.length === 0) {
+          throw new Error('Offline station cache is empty. Connect to internet.');
+        }
+
+        const graph = new MetroGraph(cached);
+        const strategy = route.strategy || 'shortest';
+        let newRoute = null;
+
+        if (strategy === 'shortest') {
+          newRoute = graph.findShortestPath(currentStation, destinationName);
+        } else if (strategy === 'minInterchanges') {
+          newRoute = graph.findMinInterchangesPath(currentStation, destinationName);
+        } else if (strategy === 'shortestDistance') {
+          newRoute = graph.findShortestDistancePath(currentStation, destinationName);
+        } else if (strategy === 'lessCongested') {
+          newRoute = graph.findLessCongestedPath(currentStation, destinationName);
+        } else {
+          newRoute = graph.findShortestPath(currentStation, destinationName);
+        }
+
+        if (newRoute.error) throw new Error(newRoute.error);
+
+        // Update local trip history
+        try {
+          const queue = JSON.parse(localStorage.getItem('offline_trips_queue') || '[]');
+          const idx = queue.findIndex(t => t.tripId === state.tripId);
+          if (idx !== -1) {
+            queue[idx].routePath = newRoute.path;
+            localStorage.setItem('offline_trips_queue', JSON.stringify(queue));
+          }
+        } catch (e) {
+          console.error(e);
+        }
+
+        // 1. Dispatch SET_ROUTE
+        dispatch({ type: 'SET_ROUTE', payload: { ...newRoute, strategy, isOfflineCalculated: true } });
+
+        // 2. Dispatch SET_PREDICTION immediately to avoid index mismatch
+        const initialPrediction = {
+          currentStation: newRoute.path[0],
+          nextStation: newRoute.path[1] || null,
+          stopsRemaining: newRoute.path.length - 1,
+          currentIndex: 0,
+          visitedStations: [newRoute.path[0]],
+          shouldAlert: (newRoute.path.length - 1) <= 2,
+          confidence: 'high',
+          method: 'local-recalculated',
+          isOffRoute: false,
+          isWrongDirection: false,
+          warningMessage: '',
+        };
+        dispatch({ type: 'SET_PREDICTION', payload: initialPrediction });
+
+        notify('🔄 Route Recalculated (Offline)', `Recalculated route locally using ${strategy} strategy.`);
+      } catch (err) {
+        console.error('Offline recalculate failed:', err);
+        notify('❌ Recalculation Failed', err.message || 'Could not recalculate path locally.');
+      } finally {
+        setRecalculating(false);
+      }
+      return;
+    }
+
+    // Online recalculation
     try {
-      const res = await metroAPI.getRoute(prediction.currentStation, destinationName);
+      const res = await metroAPI.getRoute(currentStation, destinationName);
       const strategy = route.strategy || 'shortest';
       let newRoute = null;
 
@@ -268,10 +406,60 @@ export default function TrackingPage() {
       }
 
       await metroAPI.recalculateTrip(state.tripId, { newRoutePath: newRoute.path });
+
+      // 1. Dispatch SET_ROUTE
       dispatch({ type: 'SET_ROUTE', payload: { ...newRoute, strategy } });
+
+      // 2. Dispatch SET_PREDICTION immediately to avoid index mismatch
+      const initialPrediction = {
+        currentStation: newRoute.path[0],
+        nextStation: newRoute.path[1] || null,
+        stopsRemaining: newRoute.path.length - 1,
+        currentIndex: 0,
+        visitedStations: [newRoute.path[0]],
+        shouldAlert: (newRoute.path.length - 1) <= 2,
+        confidence: 'high',
+        method: 'recalculated',
+        isOffRoute: false,
+        isWrongDirection: false,
+        warningMessage: '',
+      };
+      dispatch({ type: 'SET_PREDICTION', payload: initialPrediction });
+
       notify('🔄 Route Recalculated', `Recalculated route using ${strategy} strategy.`);
     } catch (err) {
-      console.error(err);
+      console.error('Online recalculate failed, attempting local fallback:', err);
+      // Fallback to local recalculation if online API fails
+      try {
+        const cached = JSON.parse(localStorage.getItem('metro_stations_cache')) || [];
+        if (cached.length > 0) {
+          const graph = new MetroGraph(cached);
+          const strategy = route.strategy || 'shortest';
+          const newRoute = graph.findShortestPath(currentStation, destinationName);
+
+          if (!newRoute.error) {
+            dispatch({ type: 'SET_ROUTE', payload: { ...newRoute, strategy, isOfflineCalculated: true } });
+            const initialPrediction = {
+              currentStation: newRoute.path[0],
+              nextStation: newRoute.path[1] || null,
+              stopsRemaining: newRoute.path.length - 1,
+              currentIndex: 0,
+              visitedStations: [newRoute.path[0]],
+              shouldAlert: (newRoute.path.length - 1) <= 2,
+              confidence: 'high',
+              method: 'local-fallback-recalculated',
+              isOffRoute: false,
+              isWrongDirection: false,
+              warningMessage: '',
+            };
+            dispatch({ type: 'SET_PREDICTION', payload: initialPrediction });
+            notify('🔄 Route Recalculated (Offline Fallback)', `Server offline; path recalculated locally.`);
+            setRecalculating(false);
+            return;
+          }
+        }
+      } catch (_) {}
+      notify('❌ Recalculation Failed', 'Could not reach server to recalculate path.');
     } finally {
       setRecalculating(false);
     }
@@ -324,6 +512,27 @@ export default function TrackingPage() {
 
   // Station data for timeline
   const currentStopName = prediction?.currentStation || route.path[0];
+
+  // Find the next upcoming interchange station
+  let upcomingInterchange = null;
+  if (route?.interchanges && route?.stationDetails) {
+    for (let i = currentIndex; i < route.path.length - 1; i++) {
+      const name = route.path[i];
+      if (route.interchanges.includes(name)) {
+        const nextLine = route.stationDetails[i + 1]?.line;
+        const currLine = route.stationDetails[i]?.line;
+        if (nextLine && currLine && currLine !== nextLine) {
+          upcomingInterchange = {
+            stationName: name,
+            currentLine: currLine,
+            nextLine: nextLine,
+            stopsAway: i - currentIndex
+          };
+          break;
+        }
+      }
+    }
+  }
 
   return (
     <div className="bg-background text-on-background font-body-lg antialiased min-h-screen relative flex flex-col pt-safe">
@@ -675,28 +884,67 @@ export default function TrackingPage() {
             {/* Full Route Schedule Timeline */}
             <section className="bg-surface-container-lowest p-lg rounded-xl border border-outline-variant/30 shadow-sm">
               <h3 className="font-title-md text-title-md mb-lg text-on-surface font-extrabold">Route Schedule</h3>
-              <div className="relative flex flex-col gap-md">
-                {/* Timeline Vertical Track */}
-                <div className="absolute left-[11px] top-2 bottom-2 w-0.5 timeline-gradient"></div>
+              
+              {/* Sticky Upcoming Interchange Alert Card */}
+              {upcomingInterchange && (
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3.5 flex items-start gap-3 shadow-[0_4px_20px_rgba(245,158,11,0.08)] mb-6 animate-pulse">
+                  <span className="material-symbols-outlined text-amber-600 text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                    notifications_active
+                  </span>
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] font-black text-amber-700 uppercase tracking-wider leading-none">Upcoming Transfer Alert</p>
+                    <p className="text-xs text-on-surface font-bold leading-normal">
+                      {upcomingInterchange.stopsAway === 0 ? (
+                        <>
+                          Transfer lines now at <span className="text-primary font-black">{upcomingInterchange.stationName}</span>!
+                        </>
+                      ) : (
+                        <>
+                          Transfer lines in <span className="text-primary font-black">{upcomingInterchange.stopsAway} stop{upcomingInterchange.stopsAway !== 1 ? 's' : ''}</span> at <strong>{upcomingInterchange.stationName}</strong>.
+                        </>
+                      )}
+                    </p>
+                    <p className="text-[10px] text-on-surface-variant leading-relaxed">
+                      Change from the <span className="font-bold text-on-surface">{upcomingInterchange.currentLine} Line</span> to the <span className="font-bold text-on-surface">{upcomingInterchange.nextLine} Line</span>.
+                    </p>
+                  </div>
+                </div>
+              )}
 
+              <div className="relative flex flex-col gap-md">
                 {route.path.map((stationName, idx) => {
                   const isVisited = prediction?.visitedStations?.includes(stationName);
                   const isCurrent = stationName === currentStopName;
                   const isPast = idx < currentIndex;
                   const lineColor = route.stationDetails?.[idx]?.line;
+                  const isLast = idx === route.path.length - 1;
+                  const isInterchange = route.interchanges?.includes(stationName);
+                  const nextLineColor = route.stationDetails?.[idx + 1]?.line;
 
                   return (
                     <div key={`${stationName}-${idx}`} className={`flex items-start gap-md relative z-10 ${isPast && !isCurrent ? 'opacity-50' : ''}`}>
-                      {/* Station Dot */}
-                      {isCurrent ? (
-                        <div className="w-6 h-6 rounded-full bg-white border-4 border-primary shadow-sm flex-shrink-0 flex items-center justify-center">
-                          <div className="w-2 h-2 rounded-full bg-primary" style={{ animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}></div>
-                        </div>
-                      ) : isPast || isVisited ? (
-                        <div className="w-6 h-6 rounded-full bg-primary border-4 border-white shadow-sm flex-shrink-0"></div>
-                      ) : (
-                        <div className="w-6 h-6 rounded-full bg-white border-4 border-outline-variant shadow-sm flex-shrink-0"></div>
-                      )}
+                      {/* Station Dot & Dynamic Color-Coded Segments */}
+                      <div className="flex flex-col items-center flex-shrink-0 relative">
+                        {isCurrent ? (
+                          <div className="w-6 h-6 rounded-full bg-white border-4 border-primary shadow-sm z-10 flex items-center justify-center">
+                            <div className="w-2 h-2 rounded-full bg-primary" style={{ animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}></div>
+                          </div>
+                        ) : isPast || isVisited ? (
+                          <div className="w-6 h-6 rounded-full bg-primary border-4 border-white shadow-sm z-10"></div>
+                        ) : (
+                          <div className="w-6 h-6 rounded-full bg-white border-4 border-outline-variant shadow-sm z-10"></div>
+                        )}
+                        {!isLast && (
+                          <div 
+                            className="w-1 absolute top-6 bottom-[-16px] left-1/2 -translate-x-1/2" 
+                            style={{ 
+                              backgroundColor: LINE_COLORS[lineColor] || 'var(--outline-variant)',
+                              opacity: isPast ? 0.35 : 1,
+                              borderRadius: '2px'
+                            }} 
+                          />
+                        )}
+                      </div>
 
                       {/* Station Info */}
                       <div className="flex flex-col flex-1 min-w-0">
@@ -706,13 +954,39 @@ export default function TrackingPage() {
                         <span className="font-body-sm text-body-sm text-on-surface-variant">
                           {isCurrent ? 'Current Station' : isPast || isVisited ? 'Departed' : `Arriving ~${(idx - currentIndex) * 3} min`}
                         </span>
-                        {lineColor && (
-                          <span
-                            className="inline-flex items-center mt-1 px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider text-white w-fit"
-                            style={{ backgroundColor: LINE_COLORS[lineColor] || '#4648d4' }}
-                          >
-                            {lineColor} Line
-                          </span>
+                        
+                        <div className="flex flex-wrap items-center gap-xs mt-1">
+                          {lineColor && (
+                            <span
+                              className="inline-flex items-center px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider text-white"
+                              style={{ backgroundColor: LINE_COLORS[lineColor] || '#4648d4' }}
+                            >
+                              {lineColor} Line
+                            </span>
+                          )}
+
+                          {isInterchange && nextLineColor && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-600 border border-amber-500/25">
+                              ↔ Interchange Point
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Timeline Interchange Callout Box */}
+                        {isInterchange && nextLineColor && (
+                          <div className="mt-2 p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl flex items-start gap-2.5 w-full max-w-sm">
+                            <span className="material-symbols-outlined text-amber-600 text-[18px]">
+                              sync_alt
+                            </span>
+                            <div className="space-y-0.5">
+                              <p className="text-[10px] font-black text-amber-700 uppercase tracking-wider">
+                                Transfer Station
+                              </p>
+                              <p className="text-[10px] text-on-surface-variant leading-relaxed font-semibold">
+                                Switch from <span className="font-bold text-on-surface">{lineColor} Line</span> to <span className="font-bold text-on-surface">{nextLineColor} Line</span>.
+                              </p>
+                            </div>
+                          </div>
                         )}
                       </div>
 
@@ -729,7 +1003,7 @@ export default function TrackingPage() {
                           <span className="bg-surface-container text-on-surface-variant px-sm py-1 rounded-full font-label-md text-[9px] font-bold border border-outline-variant/30">START</span>
                         </div>
                       )}
-                      {idx === route.path.length - 1 && !isCurrent && (
+                      {isLast && !isCurrent && (
                         <div className="ml-auto flex-shrink-0">
                           <span className="bg-primary/10 text-primary px-sm py-1 rounded-full font-label-md text-[9px] font-bold">DESTINATION</span>
                         </div>

@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { metroAPI } from '../services/api';
-import { MapContainer, TileLayer, CircleMarker, Popup, Polyline, Tooltip, useMap } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
+import { searchStations } from '../services/searchService';
 
 const LINE_COLORS = {
   Blue: '#2563EB', Yellow: '#EAB308', Red: '#EF4444',
@@ -19,82 +18,31 @@ const LINE_DESTINATIONS = {
   Orange: { p1: 'New Delhi', p2: 'Yashobhoomi Dwarka Sector 25' }
 };
 
-// Map View controller to handle dynamic fitting and panning without continuous lag
-function MapView({ stations, selectedLine, focusedStation }) {
-  const map = useMap();
-  
-  useEffect(() => {
-    if (stations.length > 0 && !focusedStation) {
-      const bounds = stations.map(s => [s.lat, s.lng]);
-      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
-    }
-  }, [selectedLine, map]);
-
-  useEffect(() => {
-    if (focusedStation) {
-      map.setView([focusedStation.lat, focusedStation.lng], 15, { animate: true, duration: 1 });
-    }
-  }, [focusedStation, map]);
-
-  return null;
-}
-
-// Separate listener to capture map zoom changes dynamically
-function MapZoomListener({ setZoom }) {
-  const map = useMap();
-  useEffect(() => {
-    const handleZoom = () => {
-      setZoom(map.getZoom());
-    };
-    map.on('zoomend', handleZoom);
-    return () => {
-      map.off('zoomend', handleZoom);
-    };
-  }, [map, setZoom]);
-  return null;
-}
-
-// Floating controls inside Leaflet Map context
-function MapControls({ onLocate }) {
-  const map = useMap();
-  return (
-    <div className="absolute right-md top-24 flex flex-col gap-sm z-[1000] pointer-events-auto">
-      <button 
-        onClick={() => map.zoomIn()}
-        className="w-12 h-12 rounded-xl bg-surface/90 backdrop-blur-md shadow-lg border border-outline-variant/30 flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-all active:scale-90"
-        title="Zoom In"
-      >
-        <span className="material-symbols-outlined">add</span>
-      </button>
-      <button 
-        onClick={() => map.zoomOut()}
-        className="w-12 h-12 rounded-xl bg-surface/90 backdrop-blur-md shadow-lg border border-outline-variant/30 flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-all active:scale-90"
-        title="Zoom Out"
-      >
-        <span className="material-symbols-outlined">remove</span>
-      </button>
-      <div className="h-px w-8 bg-outline-variant/50 mx-auto my-1"></div>
-      <button 
-        onClick={onLocate}
-        className="w-12 h-12 rounded-xl bg-primary text-on-primary shadow-lg flex items-center justify-center hover:shadow-primary/20 transition-all active:scale-90 text-white"
-        title="My Location"
-      >
-        <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>my_location</span>
-      </button>
-    </div>
-  );
-}
-
 export default function MapPage() {
   const navigate = useNavigate();
   const [stations, setStations] = useState([]);
-  const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedLine, setSelectedLine] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [focusedStation, setFocusedStation] = useState(null);
-  const [zoom, setZoom] = useState(11);
-  const [showAllLabels, setShowAllLabels] = useState(false);
+  
+  // Transform values stored in REFS to bypass React render cycle during drags (yielding 60 FPS)
+  const panOffsetRef = useRef({ x: 0, y: 0 });
+  const zoomScaleRef = useRef(1);
+
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [svgContent, setSvgContent] = useState('');
+
+  // Pinch-to-zoom state variables
+  const [isPinching, setIsPinching] = useState(false);
+  const [startPinchDist, setStartPinchDist] = useState(0);
+  const [startScale, setStartScale] = useState(1);
+
+  // DOM Refs
+  const viewportRef = useRef(null);
+  const svgContainerRef = useRef(null);
+  const mapContentRef = useRef(null);
+
   const [starredStations, setStarredStations] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('metro_favorites') || '[]');
@@ -103,129 +51,242 @@ export default function MapPage() {
     }
   });
 
-  const [mapMode, setMapMode] = useState('schematic'); // 'schematic' | 'geographical'
-  const [zoomScale, setZoomScale] = useState(1);
-  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  // Direct DOM style applier
+  const applyTransform = useCallback(() => {
+    if (mapContentRef.current) {
+      mapContentRef.current.style.transform = `translate(${panOffsetRef.current.x}px, ${panOffsetRef.current.y}px) scale(${zoomScaleRef.current})`;
+    }
+  }, []);
 
+  // Mouse drag gestures
   const handleMouseDown = (e) => {
     if (e.button !== 0) return;
     setIsDragging(true);
-    setDragStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+    setDragStart({ x: e.clientX - panOffsetRef.current.x, y: e.clientY - panOffsetRef.current.y });
   };
 
   const handleMouseMove = (e) => {
     if (!isDragging) return;
-    setPanOffset({
+    panOffsetRef.current = {
       x: e.clientX - dragStart.x,
       y: e.clientY - dragStart.y
-    });
+    };
+    applyTransform();
   };
 
   const handleMouseUp = () => {
     setIsDragging(false);
   };
 
+  // Touch drag & pinch-to-zoom gestures
   const handleTouchStart = (e) => {
     if (e.touches.length === 1) {
       setIsDragging(true);
+      setIsPinching(false);
       const touch = e.touches[0];
-      setDragStart({ x: touch.clientX - panOffset.x, y: touch.clientY - panOffset.y });
+      setDragStart({ x: touch.clientX - panOffsetRef.current.x, y: touch.clientY - panOffsetRef.current.y });
+    } else if (e.touches.length === 2) {
+      setIsDragging(false);
+      setIsPinching(true);
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const dist = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
+      setStartPinchDist(dist);
+      setStartScale(zoomScaleRef.current);
     }
   };
 
   const handleTouchMove = (e) => {
-    if (!isDragging || e.touches.length !== 1) return;
-    const touch = e.touches[0];
-    setPanOffset({
-      x: touch.clientX - dragStart.x,
-      y: touch.clientY - dragStart.y
-    });
+    if (isDragging && e.touches.length === 1) {
+      const touch = e.touches[0];
+      panOffsetRef.current = {
+        x: touch.clientX - dragStart.x,
+        y: touch.clientY - dragStart.y
+      };
+      applyTransform();
+    } else if (isPinching && e.touches.length === 2) {
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const dist = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
+      if (startPinchDist > 0) {
+        const factor = dist / startPinchDist;
+        zoomScaleRef.current = Math.max(0.5, Math.min(4.0, startScale * factor));
+        applyTransform();
+      }
+    }
   };
 
   const handleTouchEnd = () => {
     setIsDragging(false);
+    setIsPinching(false);
   };
 
-  const handleZoomIn = () => setZoomScale(s => Math.min(s + 0.3, 4.0));
-  const handleZoomOut = () => setZoomScale(s => Math.max(s - 0.3, 0.5));
+  // Zoom controls
+  const handleZoomIn = () => {
+    zoomScaleRef.current = Math.min(zoomScaleRef.current + 0.3, 4.0);
+    applyTransform();
+  };
+
+  const handleZoomOut = () => {
+    zoomScaleRef.current = Math.max(zoomScaleRef.current - 0.3, 0.5);
+    applyTransform();
+  };
+
   const handleZoomReset = () => {
-    setZoomScale(1);
-    setPanOffset({ x: 0, y: 0 });
+    zoomScaleRef.current = 1;
+    panOffsetRef.current = { x: 0, y: 0 };
+    applyTransform();
   };
 
-  const lines = ['All', 'Blue', 'Yellow', 'Red', 'Green', 'Violet', 'Pink', 'Orange'];
-
+  // Fetch stations and load schematic map SVG
   useEffect(() => {
-    metroAPI.getAllStations().then((res) => {
-      const allStations = res.data || [];
-      setStations(allStations);
-
-      const lookup = {};
-      allStations.forEach((s) => {
-        lookup[s.name] = s;
+    setLoading(true);
+    
+    metroAPI.getAllStations()
+      .then((res) => {
+        setStations(res.data || []);
+      })
+      .catch((err) => {
+        console.warn("Offline fallback for stations cache:", err);
+        const cached = JSON.parse(localStorage.getItem('metro_stations_cache') || '[]');
+        setStations(cached);
       });
 
-      const drawnTracks = new Set();
-      const tracks = [];
-
-      allStations.forEach((s) => {
-        if (s.connectedStations) {
-          s.connectedStations.forEach((neighborName) => {
-            const neighbor = lookup[neighborName];
-            if (neighbor) {
-              const trackKey = [s.name, neighbor.name].sort().join('--');
-              if (!drawnTracks.has(trackKey)) {
-                drawnTracks.add(trackKey);
-                tracks.push({
-                  from: [s.lat, s.lng],
-                  to: [neighbor.lat, neighbor.lng],
-                  line: s.line,
-                  key: trackKey
-                });
-              }
-            }
-          });
-        }
+    fetch('/delhi_metro_map.svg')
+      .then(res => {
+        if (!res.ok) throw new Error("SVG map could not be fetched.");
+        return res.text();
+      })
+      .then(text => {
+        setSvgContent(text);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Failed to load SVG map:", err);
+        setLoading(false);
       });
-
-      setConnections(tracks);
-      setLoading(false);
-    });
   }, []);
 
-  const filteredStations = stations.filter((s) => {
-    return selectedLine === 'All' || s.line === selectedLine;
-  });
+  // Station search centering & highlight engine
+  const centerOnStation = useCallback((stationName) => {
+    if (!svgContainerRef.current || !viewportRef.current) return;
+    const svgEl = svgContainerRef.current.querySelector('svg');
+    if (!svgEl) return;
 
-  const filteredConnections = connections.filter((c) => {
-    return selectedLine === 'All' || c.line === selectedLine;
-  });
+    // Search for tspan or text elements containing station name
+    const elements = svgEl.querySelectorAll('tspan, text');
+    const cleanStr = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const target = cleanStr(stationName);
 
-  const suggestions = searchQuery.trim()
-    ? stations
-        .filter((s) => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
-        .slice(0, 8)
-    : [];
-
-  const handleLocateUser = () => {
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        if (stations.length > 0) {
-          // Temporarily mock focused coordinates
-          setFocusedStation({
-            name: "Current Location",
-            lat: coords.latitude,
-            lng: coords.longitude,
-            line: "User",
-            platforms: []
-          });
+    let matchedEl = null;
+    // 1. Exact match
+    for (const el of elements) {
+      if (cleanStr(el.textContent) === target) {
+        matchedEl = el;
+        break;
+      }
+    }
+    // 2. Substring match fallback
+    if (!matchedEl) {
+      for (const el of elements) {
+        const text = cleanStr(el.textContent);
+        if (text.includes(target) || target.includes(text)) {
+          matchedEl = el;
+          break;
         }
-      },
-      () => alert("Location permission denied.")
-    );
-  };
+      }
+    }
+
+    if (matchedEl) {
+      // Clear previous highlights
+      const highlighted = svgEl.querySelectorAll('.station-highlight');
+      highlighted.forEach(el => {
+        el.style.fill = '';
+        el.style.fontWeight = '';
+        el.style.fontSize = '';
+        el.classList.remove('station-highlight');
+      });
+
+      // Highlight target station in premium bright pink
+      matchedEl.style.fill = '#EC4899';
+      matchedEl.style.fontWeight = 'bold';
+      matchedEl.classList.add('station-highlight');
+      
+      const parentText = matchedEl.closest('text');
+      if (parentText) {
+        parentText.style.fill = '#EC4899';
+        parentText.style.fontWeight = 'bold';
+        parentText.style.fontSize = '24px';
+        parentText.classList.add('station-highlight');
+      }
+
+      // Extract coordinates relative to the unscaled SVG canvas
+      const svgWidth = parseFloat(svgEl.getAttribute('width')) || 3863.9;
+      const svgHeight = parseFloat(svgEl.getAttribute('height')) || 2932.7;
+
+      let elementX = 0;
+      let elementY = 0;
+
+      try {
+        const bbox = matchedEl.getBBox();
+        elementX = bbox.x + bbox.width / 2;
+        elementY = bbox.y + bbox.height / 2;
+      } catch (e) {
+        const xAttr = matchedEl.getAttribute('x') || parentText?.getAttribute('x');
+        const yAttr = matchedEl.getAttribute('y') || parentText?.getAttribute('y');
+        elementX = xAttr ? parseFloat(xAttr) : svgWidth / 2;
+        elementY = yAttr ? parseFloat(yAttr) : svgHeight / 2;
+      }
+
+      // Add parent text transformations (translate / matrix support)
+      if (parentText) {
+        const transform = parentText.getAttribute('transform');
+        if (transform) {
+          const translateMatch = transform.match(/translate\(([-\d.]+)\s*[, ]\s*([-\d.]+)\)/) || transform.match(/translate\(([-\d.]+)\s+([-\d.]+)\)/);
+          if (translateMatch) {
+            elementX += parseFloat(translateMatch[1]);
+            elementY += parseFloat(translateMatch[2]);
+          } else {
+            const matrixMatch = transform.match(/matrix\(([-\d.]+)\s*[, ]\s*([-\d.]+)\s*[, ]\s*([-\d.]+)\s*[, ]\s*([-\d.]+)\s*[, ]\s*([-\d.]+)\s*[, ]\s*([-\d.]+)\)/)
+                             || transform.match(/matrix\(([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\)/);
+            if (matrixMatch) {
+              elementX += parseFloat(matrixMatch[5]);
+              elementY += parseFloat(matrixMatch[6]);
+            }
+          }
+        }
+      }
+
+      const targetScale = 1.8; // Zoom scale for high readability
+
+      // Relative coordinates of station on the unscaled SVG:
+      const relX = elementX - svgWidth / 2;
+      const relY = elementY - svgHeight / 2;
+
+      // Adjust panOffset to center coordinates in the viewport
+      const newPanX = - relX * targetScale;
+      const newPanY = - relY * targetScale;
+
+      zoomScaleRef.current = targetScale;
+      panOffsetRef.current = { x: newPanX, y: newPanY };
+      applyTransform();
+    }
+  }, [applyTransform]);
+
+  // Listen for focusedStation state changes to automatically center
+  useEffect(() => {
+    if (focusedStation) {
+      const timer = setTimeout(() => {
+        centerOnStation(focusedStation.name);
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [focusedStation, centerOnStation]);
+
+  // Unified fuzzy station autocomplete search suggestions
+  const suggestions = searchQuery.trim()
+    ? searchStations(stations, searchQuery).slice(0, 8)
+    : [];
 
   const toggleStarStation = (name) => {
     let nextStarred;
@@ -307,43 +368,15 @@ export default function MapPage() {
 
       {/* Map Canvas Area */}
       <main className="relative w-full h-full pt-16 z-0" id="map-container">
-        {/* Map Mode Selector */}
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[1000] flex bg-surface-container/90 backdrop-blur-md border border-outline-variant/30 p-1 rounded-full shadow-lg pointer-events-auto">
-          <button
-            onClick={() => {
-              setMapMode('schematic');
-              handleZoomReset();
-            }}
-            className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
-              mapMode === 'schematic'
-                ? 'bg-primary text-white shadow-sm'
-                : 'text-on-surface-variant hover:bg-surface-container-high'
-            }`}
-          >
-            <span className="material-symbols-outlined text-[16px]">map</span>
-            Schematic Map
-          </button>
-          <button
-            onClick={() => setMapMode('geographical')}
-            className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
-              mapMode === 'geographical'
-                ? 'bg-primary text-white shadow-sm'
-                : 'text-on-surface-variant hover:bg-surface-container-high'
-            }`}
-          >
-            <span className="material-symbols-outlined text-[16px]">location_on</span>
-            Geographic Map
-          </button>
-        </div>
-
         {loading ? (
           <div className="flex justify-center items-center h-full">
             <span className="flex gap-2"><span className="loading-dot"/><span className="loading-dot"/><span className="loading-dot"/></span>
           </div>
-        ) : mapMode === 'schematic' ? (
-          /* Interactive Zoomable Schematic Map (Offline Ready) */
+        ) : (
+          /* Interactive Zoomable Schematic Map (Offline Ready, No Heavy Leaflet) */
           <div 
-            className="map-viewport w-full h-full relative"
+            ref={viewportRef}
+            className="map-viewport w-full h-full relative overflow-hidden"
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
@@ -353,9 +386,11 @@ export default function MapPage() {
             onTouchEnd={handleTouchEnd}
           >
             <div 
+              ref={mapContentRef}
               className="map-zoom-content"
               style={{
-                transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomScale})`,
+                transform: `translate(${panOffsetRef.current.x}px, ${panOffsetRef.current.y}px) scale(${zoomScaleRef.current})`,
+                transformOrigin: 'center center',
                 width: '100%',
                 height: '100%',
                 display: 'flex',
@@ -363,14 +398,19 @@ export default function MapPage() {
                 justifyContent: 'center'
               }}
             >
-              <img 
-                src="/delhi_metro_map.svg" 
-                alt="Official Delhi Metro Route Map" 
-                className="max-w-none max-h-none h-[88%] pointer-events-none select-none"
-                style={{
-                  objectFit: 'contain'
-                }}
-              />
+              {svgContent ? (
+                <div 
+                  ref={svgContainerRef}
+                  dangerouslySetInnerHTML={{ __html: svgContent }} 
+                  className="h-[88%] w-auto flex items-center justify-center svg-map-container"
+                  style={{
+                    pointerEvents: 'none',
+                    userSelect: 'none'
+                  }}
+                />
+              ) : (
+                <div className="text-xs text-on-surface-variant">Failed to load Map canvas.</div>
+              )}
             </div>
             
             {/* Floating Zoom controls specifically for Schematic Map */}
@@ -398,114 +438,6 @@ export default function MapPage() {
                 Reset
               </button>
             </div>
-          </div>
-        ) : (
-          /* Geographical Leaflet Map */
-          <MapContainer 
-            center={[28.6139, 77.2090]} 
-            zoom={11} 
-            style={{ width: '100%', height: '100%' }}
-            zoomControl={false}
-          >
-            {/* Dark/Light tile layers resolved via CSS variables filters */}
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors'
-            />
-            
-            {/* Dynamic Map controllers */}
-            <MapView 
-              stations={filteredStations} 
-              selectedLine={selectedLine} 
-              focusedStation={focusedStation} 
-            />
-            <MapZoomListener setZoom={setZoom} />
-            <MapControls onLocate={handleLocateUser} />
-
-            {/* Render connecting metro tracks */}
-            {filteredConnections.map((c) => (
-              <Polyline
-                key={c.key}
-                positions={[c.from, c.to]}
-                pathOptions={{
-                  color: LINE_COLORS[c.line] || '#6366F1',
-                  weight: 4,
-                  opacity: 0.9
-                }}
-              />
-            ))}
-
-            {/* Render station CircleMarkers */}
-            {filteredStations.map((s) => {
-              const isFocused = focusedStation?.name === s.name;
-              const shouldShowTooltip = showAllLabels || zoom >= 13 || s.interchange || isFocused;
-
-              return (
-                <CircleMarker
-                  key={s.id || s.name}
-                  center={[s.lat, s.lng]}
-                  radius={s.interchange ? 7 : 5}
-                  pathOptions={{
-                    color: isFocused ? '#4648d4' : '#1b1b23',
-                    weight: isFocused ? 3 : 1.5,
-                    fillColor: LINE_COLORS[s.line] || '#6366F1',
-                    fillOpacity: 1
-                  }}
-                  eventHandlers={{
-                    click: () => {
-                      setFocusedStation(s);
-                    }
-                  }}
-                >
-                  {shouldShowTooltip && (
-                    <Tooltip 
-                      permanent 
-                      direction="bottom" 
-                      offset={[0, 8]} 
-                      className="station-map-tooltip"
-                    >
-                      {s.name}
-                    </Tooltip>
-                  )}
-                </CircleMarker>
-              );
-            })}
-          </MapContainer>
-        )}
-
-        {/* Floating Category Filters on Map Canvas - Only display when geographic map is active to avoid overlap */}
-        {mapMode === 'geographical' && (
-          <div className="absolute left-md top-32 flex gap-xs items-center overflow-x-auto pb-2 scrollbar-hide pointer-events-auto z-[1000] w-[calc(100%-120px)] mt-safe">
-            <button
-              onClick={() => setShowAllLabels(prev => !prev)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-all ${
-                showAllLabels
-                  ? 'bg-primary border-primary text-white'
-                  : 'bg-surface/90 border-outline-variant/30 text-on-surface'
-              }`}
-            >
-              🏷️ Labels: {showAllLabels ? 'ON' : 'OFF'}
-            </button>
-
-            <div className="w-[1px] h-4 bg-outline-variant/30 flex-shrink-0" />
-
-            {lines.map((line) => (
-              <button
-                key={line}
-                onClick={() => {
-                  setSelectedLine(line);
-                  setFocusedStation(null);
-                }}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-all ${
-                  selectedLine === line
-                    ? 'bg-primary border-primary text-white font-black'
-                    : 'bg-surface/90 border-outline-variant/30 text-on-surface'
-                }`}
-                style={selectedLine === line && line !== 'All' ? { backgroundColor: LINE_COLORS[line], borderColor: LINE_COLORS[line], color: '#fff' } : {}}
-              >
-                {line}
-              </button>
-            ))}
           </div>
         )}
       </main>
@@ -591,7 +523,7 @@ export default function MapPage() {
                 onClick={() => {
                   navigate('/', { state: { prefilledSource: focusedStation.name } });
                 }}
-                className="flex-1 h-14 bg-primary text-on-primary rounded-xl font-title-md text-title-md shadow-lg shadow-primary/20 flex items-center justify-center gap-sm active:scale-[0.98] transition-all font-bold"
+                className="flex-1 h-14 bg-primary text-on-primary rounded-xl font-title-md text-title-md shadow-lg shadow-primary/20 flex items-center justify-center gap-sm active:scale-[0.98] transition-all font-bold text-white"
               >
                 <span className="material-symbols-outlined">directions</span>
                 Get Directions

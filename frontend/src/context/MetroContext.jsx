@@ -1,5 +1,7 @@
 import { createContext, useContext, useReducer, useRef, useEffect } from 'react';
 import { io } from 'socket.io-client';
+import { LocalNotifications } from '@capacitor/local-notifications';
+import { Capacitor } from '@capacitor/core';
 
 const MetroContext = createContext(null);
 
@@ -88,7 +90,7 @@ export function MetroProvider({ children }) {
     socketRef.current?.emit('gps-update', { tripId, lat, lng, accuracy });
   }
 
-  function fireNotification(message) {
+  async function fireNotification(message) {
     // 1. Play Synthesized Chime sound using Web Audio API (completely offline-friendly)
     try {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -120,7 +122,27 @@ export function MetroProvider({ children }) {
     }
 
     // 3. Native push / visual overlay
-    if ('Notification' in window && Notification.permission === 'granted') {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const { display } = await LocalNotifications.checkPermissions();
+        if (display === 'granted') {
+          await LocalNotifications.schedule({
+            notifications: [
+              {
+                title: '🚇 MetroPulse Station Alert',
+                body: message,
+                id: Math.floor(Math.random() * 10_000_000),
+                schedule: { allowWhileIdle: true },
+                channelId: 'metro_alerts',
+              }
+            ]
+          });
+          console.log('[MetroContext] Fired native notification:', message);
+        }
+      } catch (err) {
+        console.error('[MetroContext] Native notification schedule failed:', err);
+      }
+    } else if ('Notification' in window && Notification.permission === 'granted') {
       const icon = '/metro-icon.png';
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.ready

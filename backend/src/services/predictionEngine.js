@@ -159,6 +159,7 @@ class PredictionEngine {
       currentStation: predictedStation,
       nextStation,
       stopsRemaining,
+      currentIndex: state.currentIndex,
       shouldAlert,
       confidence,
       method,

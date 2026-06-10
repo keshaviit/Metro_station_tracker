@@ -4,6 +4,7 @@ import { metroAPI } from '../services/api';
 import { useMetro } from '../context/MetroContext';
 import { useAuth } from '../context/AuthContext';
 import MetroGraph from '../services/routeEngine';
+import { searchStations } from '../services/searchService';
 
 function StationInput({ label, value, onChange, onSelect, stations, icon }) {
   const [open, setOpen] = useState(false);
@@ -19,46 +20,9 @@ function StationInput({ label, value, onChange, onSelect, stations, icon }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const POPULAR_STATIONS = ["Rajiv Chowk", "Kashmere Gate", "Noida Sector 52", "Hauz Khas", "New Delhi", "Yamuna Bank"];
-  
-  const getLevenshteinDistance = (a, b) => {
-    const matrix = [];
-    for (let i = 0; i <= b.length; i++) matrix[i] = [i];
-    for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
-    
-    for (let i = 1; i <= b.length; i++) {
-      for (let j = 1; j <= a.length; j++) {
-        if (b.charAt(i - 1) === a.charAt(j - 1)) {
-          matrix[i][j] = matrix[i - 1][j - 1];
-        } else {
-          matrix[i][j] = Math.min(
-            matrix[i - 1][j - 1] + 1,
-            matrix[i][j - 1] + 1,
-            matrix[i - 1][j] + 1
-          );
-        }
-      }
-    }
-    return matrix[b.length][a.length];
-  };
-
-  const fuzzyFilter = (stationsList, query) => {
-    if (!query) return [];
-    const cleanQuery = query.toLowerCase().trim().replace(/\s+/g, '');
-    
-    const directMatches = stationsList.filter(s => s.toLowerCase().includes(query.toLowerCase()));
-    const remaining = stationsList.filter(s => !directMatches.includes(s));
-    const fuzzyMatches = remaining.filter(s => {
-      const cleanStation = s.toLowerCase().replace(/\s+/g, '');
-      return getLevenshteinDistance(cleanQuery, cleanStation) <= 3 || cleanStation.includes(cleanQuery);
-    });
-    
-    return [...directMatches, ...fuzzyMatches];
-  };
-
   const suggestions = value.length > 0 
-    ? fuzzyFilter(stations, value) 
-    : POPULAR_STATIONS;
+    ? searchStations(stations, value) 
+    : ["Rajiv Chowk", "Kashmere Gate", "Noida Sector 52", "Hauz Khas", "New Delhi", "Yamuna Bank"];
 
   return (
     <div className="relative flex-1 w-full" ref={containerRef}>
@@ -205,6 +169,22 @@ export default function HomePage() {
     return () => window.removeEventListener('online', handleOnline);
   }, []);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const commuteType = params.get('quick_commute');
+    if (commuteType && homeStation && officeStation) {
+      // Clean query parameter from URL so it doesn't trigger again on reload/navigation back
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+
+      if (commuteType === 'work') {
+        handleQuickCommute(homeStation, officeStation);
+      } else if (commuteType === 'home') {
+        handleQuickCommute(officeStation, homeStation);
+      }
+    }
+  }, [homeStation, officeStation]);
+
   const handleSearch = async () => {
     if (!source || !destination) {
       setError('Please select both source and destination.');
@@ -277,6 +257,69 @@ export default function HomePage() {
     }
     setSource(src);
     setDestination(dest);
+  };
+
+  const handleQuickCommute = async (src, dest) => {
+    if (!src || !dest) {
+      setShowConfig(true);
+      return;
+    }
+    setLoading(true);
+    setError('');
+    
+    try {
+      const res = await metroAPI.getRoute(src, dest);
+      dispatch({ type: 'SET_ROUTE', payload: res.data });
+      
+      const startRes = await metroAPI.startTrip({ source: src, destination: dest });
+      const tripId = startRes.data?.tripId || startRes.tripId;
+      dispatch({ type: 'SET_TRIP_ID', payload: tripId });
+      
+      navigate('/track');
+    } catch (err) {
+      console.warn('[HomePage] Quick commute fallback to offline solver');
+      try {
+        const cached = JSON.parse(localStorage.getItem('metro_stations_cache')) || [];
+        if (cached.length === 0) {
+          throw new Error('Offline station cache is empty. Connect to internet to download map.');
+        }
+
+        const graph = new MetroGraph(cached);
+        const shortest = graph.findShortestPath(src, dest);
+        const minInterchanges = graph.findMinInterchangesPath(src, dest);
+        const shortestDistance = graph.findShortestDistancePath(src, dest);
+        const lessCongested = graph.findLessCongestedPath(src, dest);
+
+        if (shortest.error) throw new Error(shortest.error);
+
+        const localRouteResult = {
+          shortest, minInterchanges, shortestDistance, lessCongested, isOfflineCalculated: true
+        };
+
+        dispatch({ type: 'SET_ROUTE', payload: localRouteResult });
+        
+        const localTripId = `local-${Date.now()}`;
+        dispatch({ type: 'SET_TRIP_ID', payload: localTripId });
+
+        // Save trip to offline queue
+        const queue = JSON.parse(localStorage.getItem('offline_trips_queue') || '[]');
+        queue.unshift({
+          tripId: localTripId,
+          source: src,
+          destination: dest,
+          completed: false,
+          synced: false,
+          timestamp: new Date().toISOString()
+        });
+        localStorage.setItem('offline_trips_queue', JSON.stringify(queue));
+
+        navigate('/track');
+      } catch (offlineErr) {
+        setError(offlineErr.message || 'Routing server is offline and no local map is cached.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const swap = () => {
@@ -425,31 +468,53 @@ export default function HomePage() {
           {/* Bento Right: Commutes Widget */}
           <div className="bg-surface-container border border-outline-variant/30 rounded-xl p-md flex flex-col justify-between">
             <div>
-              <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-white mb-sm shadow-sm">
-                <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
-              </span>
-              <h3 className="font-title-md text-title-md text-primary font-bold">Smart Commute</h3>
+              <div className="flex justify-between items-start">
+                <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-white mb-sm shadow-sm animate-pulse">
+                  <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>directions_subway</span>
+                </span>
+                <button
+                  onClick={() => setShowConfig(!showConfig)}
+                  className="w-8 h-8 rounded-lg border border-outline-variant/40 hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant transition-colors"
+                  title="Configure presets"
+                >
+                  <span className="material-symbols-outlined text-[18px]">settings</span>
+                </button>
+              </div>
+              <h3 className="font-title-md text-title-md text-primary font-bold">Quick Commute</h3>
               <p className="font-body-sm text-body-sm text-on-surface-variant mt-xs leading-normal">
                 {homeStation && officeStation 
-                  ? `Commute setup active: ${homeStation} ➔ ${officeStation}`
-                  : "Setup presets for Work/Home commutes to instantly track routes offline."}
+                  ? "Instantly start daily commute tracking in a single tap."
+                  : "Setup presets for Work/Home commutes to track routes instantly."}
               </p>
             </div>
             
-            <div className="flex gap-sm mt-md">
-              <button 
-                onClick={() => handleQuickAction(homeStation, officeStation)}
-                className="flex-1 py-2 bg-primary text-on-primary rounded-lg font-label-md text-xs font-bold shadow-sm hover:bg-primary-container active:scale-[0.97]"
-              >
-                Start Commute
-              </button>
-              <button 
-                onClick={() => setShowConfig(!showConfig)}
-                className="px-3 py-2 bg-secondary-container text-on-secondary-container rounded-lg font-label-md text-xs font-bold hover:bg-outline-variant active:scale-[0.97]"
-              >
-                Configure
-              </button>
-            </div>
+            {homeStation && officeStation ? (
+              <div className="flex flex-col gap-xs mt-md">
+                <button 
+                  onClick={() => handleQuickCommute(homeStation, officeStation)}
+                  className="w-full py-2 bg-primary text-on-primary rounded-lg font-label-md text-xs font-bold shadow-sm hover:bg-primary-container active:scale-[0.97] flex items-center justify-center gap-xs text-white"
+                >
+                  <span className="material-symbols-outlined text-[16px]">home</span>
+                  Home ➔ Work
+                </button>
+                <button 
+                  onClick={() => handleQuickCommute(officeStation, homeStation)}
+                  className="w-full py-2 bg-secondary-container text-on-secondary-container rounded-lg font-label-md text-xs font-bold hover:bg-outline-variant active:scale-[0.97] flex items-center justify-center gap-xs"
+                >
+                  <span className="material-symbols-outlined text-[16px]">business</span>
+                  Work ➔ Home
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-sm mt-md">
+                <button 
+                  onClick={() => setShowConfig(true)}
+                  className="flex-1 py-2 bg-primary text-on-primary rounded-lg font-label-md text-xs font-bold shadow-sm hover:bg-primary-container active:scale-[0.97] text-white"
+                >
+                  Setup Commute
+                </button>
+              </div>
+            )}
           </div>
         </section>
 
