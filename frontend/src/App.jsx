@@ -66,11 +66,10 @@ function AppContent() {
       // 2. Request Notification permission & set up channel
       try {
         if (Capacitor.isNativePlatform()) {
-          const hasRequested = localStorage.getItem('has_requested_notifications');
-          if (!hasRequested) {
+          const { display } = await LocalNotifications.checkPermissions();
+          if (display !== 'granted') {
             const result = await LocalNotifications.requestPermissions();
             console.log('[App] Notification permission result:', result.display);
-            localStorage.setItem('has_requested_notifications', 'true');
           }
 
           // Delete old channel first so Android re-reads our channel settings.

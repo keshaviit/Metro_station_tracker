@@ -539,18 +539,20 @@ export default function TrackingPage() {
       {/* Location Consent Disclosure Modal */}
       {showDisclosure && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/85 backdrop-blur-lg animate-fade-in px-4">
-          <div className="glass-panel max-w-sm w-full border border-outline-variant/30 bg-surface/95 p-6 rounded-2xl shadow-2xl text-center space-y-5">
-            <div className="w-16 h-16 bg-primary/10 border border-primary/20 rounded-full flex items-center justify-center mx-auto text-primary animate-pulse">
-              <span className="material-symbols-outlined text-[36px]">location_on</span>
+          <div className="glass-panel max-w-sm w-full border border-outline-variant/30 bg-surface/95 p-6 rounded-2xl shadow-2xl text-center space-y-4">
+            <div className="w-14 h-14 bg-primary/10 border border-primary/20 rounded-full flex items-center justify-center mx-auto text-primary animate-pulse">
+              <span className="material-symbols-outlined text-[32px]">location_on</span>
             </div>
             <div className="space-y-2">
-              <h2 className="text-xl font-black text-on-surface tracking-wide uppercase">Location Consent</h2>
+              <h2 className="text-lg font-black text-on-surface tracking-wide uppercase">Background Location Required</h2>
               <p className="text-xs text-on-surface-variant leading-relaxed">
                 MetroPulse collects location data to calculate station arrival times and trigger alarms even when the app is closed, in the background, or the screen is locked.
               </p>
-              <p className="text-[10px] text-primary/80 font-bold leading-normal">
-                This is required for destination alarms to wake you up reliably during your journey.
-              </p>
+              <div className="bg-primary/5 border border-primary/10 rounded-xl p-3 text-left space-y-1.5 text-[11px] text-on-surface-variant">
+                <p className="font-bold text-primary">⚙️ Critical Device Configuration:</p>
+                <p><strong>1. Location:</strong> Select <strong>"Allow all the time"</strong> when prompted (or in System Settings).</p>
+                <p><strong>2. Battery:</strong> Disable battery optimization (set battery usage to <strong>"Unrestricted"</strong>).</p>
+              </div>
             </div>
             <div className="space-y-2 pt-2">
               <button
@@ -561,7 +563,7 @@ export default function TrackingPage() {
               </button>
               <button
                 onClick={handleDenyDisclosure}
-                className="w-full h-12 bg-surface-container hover:bg-surface-container-high border border-outline-variant/30 text-on-surface rounded-xl font-label-md text-label-md font-semibold active:scale-[0.98] transition-all"
+                className="w-full h-12 bg-surface-container border border-outline-variant/30 text-on-surface rounded-xl font-label-md text-label-md font-semibold active:scale-[0.98] transition-all"
               >
                 No Thanks, Go Back
               </button>
