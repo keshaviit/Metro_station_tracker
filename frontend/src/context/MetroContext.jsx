@@ -45,6 +45,18 @@ export function MetroProvider({ children }) {
   const socketRef = useRef(null);
   const lastAlertedStopsRef = useRef(-1);
 
+  // Load all stations cache on startup
+  useEffect(() => {
+    try {
+      const cached = JSON.parse(localStorage.getItem('metro_stations_cache')) || [];
+      if (cached.length > 0) {
+        dispatch({ type: 'SET_ALL_STATIONS', payload: cached });
+      }
+    } catch (e) {
+      console.warn('Failed to load cached stations into MetroContext:', e);
+    }
+  }, []);
+
   // Sync ref with reset state on trip end
   useEffect(() => {
     if (state.tripId === null) {
@@ -70,14 +82,6 @@ export function MetroProvider({ children }) {
 
     socket.on('prediction', (data) => dispatch({ type: 'SET_PREDICTION', payload: data }));
     socket.on('location-update', (data) => dispatch({ type: 'SET_PREDICTION', payload: data }));
-    socket.on('destination-alert', (data) => {
-      const stops = data.stopsRemaining != null ? data.stopsRemaining : -1;
-      if (lastAlertedStopsRef.current !== stops) {
-        lastAlertedStopsRef.current = stops;
-        dispatch({ type: 'SET_LAST_ALERTED_STOPS', payload: stops });
-        fireNotification(data.message);
-      }
-    });
 
     return () => socket.disconnect();
   }, []);

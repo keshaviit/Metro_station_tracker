@@ -63,6 +63,35 @@ function speakVoice(text) {
   }
 }
 
+// ── Helper for time-based dead-reckoning prediction ───────────────────────────
+function getPredictiveState(elapsedSeconds, lastConfirmedIndex, pathLength) {
+  const T_transit = 150; // 2.5 minutes (150 seconds)
+  const T_dwell = 30;    // 30 seconds station dwell
+  const N = pathLength - 1;
+
+  const destArrivalTime = N > lastConfirmedIndex
+    ? (N - lastConfirmedIndex) * T_transit + (N - lastConfirmedIndex - 1) * T_dwell
+    : 0;
+
+  if (elapsedSeconds >= destArrivalTime) {
+    return { index: N, status: 'stopped', stopsRemaining: 0 };
+  }
+
+  for (let j = lastConfirmedIndex + 1; j <= N; j++) {
+    const steps = j - lastConfirmedIndex;
+    const arrivalTime = steps * T_transit + (steps - 1) * T_dwell;
+    const departureTime = arrivalTime + T_dwell;
+
+    if (elapsedSeconds < arrivalTime) {
+      return { index: j - 1, status: 'in-transit', stopsRemaining: pathLength - j };
+    } else if (elapsedSeconds >= arrivalTime && elapsedSeconds < departureTime) {
+      return { index: j, status: 'stopped', stopsRemaining: pathLength - 1 - j };
+    }
+  }
+
+  return { index: lastConfirmedIndex, status: 'stopped', stopsRemaining: pathLength - 1 - lastConfirmedIndex };
+}
+
 // ── Haversine distance ─────────────────────────────────────────────────────────
 function getDistanceMeters(lat1, lng1, lat2, lng2) {
   const R = 6371000;
@@ -75,6 +104,46 @@ function getDistanceMeters(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// ── Interchange alert detector ──────────────────────────────────────────────────
+function getInterchangeAlert(predictedIndex, route, stationDetails) {
+  if (!route || !route.interchanges || !stationDetails || stationDetails.length === 0) return null;
+
+  const currentStationName = route.path[predictedIndex];
+  const isCurrentInterchange = route.interchanges.includes(currentStationName);
+  
+  if (isCurrentInterchange && predictedIndex > 0 && predictedIndex < stationDetails.length - 1) {
+    const nextStationDetail = stationDetails[predictedIndex + 1];
+    const targetLine = nextStationDetail?.line;
+    const prevStationDetail = stationDetails[predictedIndex - 1];
+    if (targetLine && prevStationDetail && prevStationDetail.line !== targetLine) {
+      return {
+        type: 'at',
+        stationName: currentStationName,
+        targetLine: targetLine
+      };
+    }
+  }
+
+  const nextIdx = predictedIndex + 1;
+  if (nextIdx > 0 && nextIdx < stationDetails.length - 1) {
+    const nextStationName = route.path[nextIdx];
+    const isNextInterchange = route.interchanges.includes(nextStationName);
+    if (isNextInterchange) {
+      const targetStationDetail = stationDetails[nextIdx + 1];
+      const targetLine = targetStationDetail?.line;
+      if (targetLine) {
+        return {
+          type: 'before',
+          stationName: nextStationName,
+          targetLine: targetLine
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
 // ── Main hook ──────────────────────────────────────────────────────────────────
 export function useGPSTracking() {
   const { state, dispatch, sendGpsUpdate } = useMetro();
@@ -84,14 +153,18 @@ export function useGPSTracking() {
   const lastLocalAlertRef      = useRef(-1);  // stops value at which we last fired a LOCAL alert
   const lastBackendAlertRef    = useRef(-1);  // stops value from last backend response alert
   const stopsRemainingCacheRef = useRef(null); // last known stopsRemaining from backend
+  const lastAlertedInterchangeBeforeIndexRef = useRef(-1);
+  const lastAlertedInterchangeAtIndexRef = useRef(-1);
+  const lastWarnedMessageRef = useRef('');
+
+  // Dead-reckoning anchors & background timer
+  const lastConfirmedIndexRef  = useRef(0);
+  const lastConfirmedTimeRef   = useRef(Date.now());
+  const timerRef               = useRef(null);
 
   // Throttling references to prevent excessive React re-renders on GPS jitter
   const lastGpsDispatchTimeRef = useRef(0);
   const lastGpsCoordsRef       = useRef({ lat: 0, lng: 0, accuracy: 0 });
-
-  // Interchange alert references to prevent duplicated triggers
-  const lastAlertedInterchangeBeforeIndexRef = useRef(-1);
-  const lastAlertedInterchangeAtIndexRef       = useRef(-1);
 
   const tripIdRef = useRef(state.tripId);
   useEffect(() => { tripIdRef.current = state.tripId; }, [state.tripId]);
@@ -130,64 +203,76 @@ export function useGPSTracking() {
     if (lsVal === remaining) return;
     localStorage.setItem(lsKey, remaining.toString());
 
+    let title = '';
+    let body = '';
+
     if (remaining === 3) {
-      triggerBackgroundNotification(
-        '🚇 3 Stations to Go',
-        `Heads up! ${destinationName} is 3 stops away. Get ready!`
-      );
+      title = '🚇 3 Stations to Go';
+      body = `Heads up! ${destinationName} is 3 stops away. Get ready!`;
     } else if (remaining === 2) {
-      triggerBackgroundNotification(
-        '🔔 Next-to-Next Station Alert!',
-        `Approaching ${nextStation || destinationName}. Prepare to deboard soon!`
-      );
+      title = '🔔 Next-to-Next Station Alert!';
+      body = `Approaching ${nextStation || destinationName}. Prepare to deboard soon!`;
     } else if (remaining === 1) {
-      triggerBackgroundNotification(
-        '🚨 Next Station Is Yours!',
-        `The very next station is ${destinationName}. Stand by to deboard!`
-      );
+      title = '🚨 Next Station Is Yours!';
+      body = `The very next station is ${destinationName}. Stand by to deboard!`;
     } else if (remaining === 0) {
-      triggerBackgroundNotification(
-        '🎉 Deboard NOW!',
-        `You have arrived at ${destinationName}!`
-      );
+      title = '🎉 Deboard NOW!';
+      body = `You have arrived at ${destinationName}!`;
+    }
+
+    if (title && body) {
+      triggerBackgroundNotification(title, body);
+      speakVoice(body);
     }
   }, []);
 
   // ── Interchange alert engine ─────────────────────────────────────────────────
   const checkInterchangeAlert = useCallback((currentIndex, stationDetails) => {
-    if (!stationDetails || stationDetails.length === 0) return;
+    const route = routeRef.current;
+    if (!route || !route.interchanges || !stationDetails || stationDetails.length === 0) return;
 
     // 1. Alert one station before the interchange
     const nextIdx = currentIndex + 1;
     if (nextIdx > 0 && nextIdx < stationDetails.length - 1) {
-      const prev = stationDetails[nextIdx - 1];
-      const next = stationDetails[nextIdx + 1];
-      if (prev && next && prev.line !== next.line) {
-        if (lastAlertedInterchangeBeforeIndexRef.current !== nextIdx) {
-          lastAlertedInterchangeBeforeIndexRef.current = nextIdx;
-          const msg = `Next station is ${stationDetails[nextIdx].name}. Please prepare to interchange to the ${next.line} Line.`;
-          triggerBackgroundNotification('🔄 Interchange Ahead', msg);
-          speakVoice(msg);
+      const nextStationName = route.path[nextIdx];
+      const isNextInterchange = route.interchanges.includes(nextStationName);
+      if (isNextInterchange) {
+        const targetStationDetail = stationDetails[nextIdx + 1];
+        const targetLine = targetStationDetail?.line;
+        if (targetLine) {
+          const lsKey = `metro_interchange_before_${nextStationName}`;
+          if (localStorage.getItem(lsKey) !== 'true') {
+            localStorage.setItem(lsKey, 'true');
+            const msg = `Next station is ${nextStationName}. Please prepare to interchange to the ${targetLine} Line.`;
+            triggerBackgroundNotification('🔄 Interchange Ahead', msg);
+            speakVoice(msg);
+          }
         }
       }
     }
 
     // 2. Alert when arriving at the interchange station itself
     if (currentIndex > 0 && currentIndex < stationDetails.length - 1) {
-      const prev = stationDetails[currentIndex - 1];
-      const next = stationDetails[currentIndex + 1];
-      if (prev && next && prev.line !== next.line) {
-        if (lastAlertedInterchangeAtIndexRef.current !== currentIndex) {
-          lastAlertedInterchangeAtIndexRef.current = currentIndex;
-          const msg = `Arrived at ${stationDetails[currentIndex].name}. Please switch to the ${next.line} Line.`;
-          triggerBackgroundNotification('🔄 Interchange Station', msg);
-          speakVoice(msg);
+      const currentStationName = route.path[currentIndex];
+      const isCurrentInterchange = route.interchanges.includes(currentStationName);
+      if (isCurrentInterchange) {
+        const nextStationDetail = stationDetails[currentIndex + 1];
+        const targetLine = nextStationDetail?.line;
+        const prevStationDetail = stationDetails[currentIndex - 1];
+        if (targetLine && prevStationDetail && prevStationDetail.line !== targetLine) {
+          const lsKey = `metro_interchange_at_${currentStationName}`;
+          if (localStorage.getItem(lsKey) !== 'true') {
+            localStorage.setItem(lsKey, 'true');
+            const msg = `Arrived at ${currentStationName}. Please switch to the ${targetLine} Line.`;
+            triggerBackgroundNotification('🔄 Interchange Station', msg);
+            speakVoice(msg);
+          }
         }
       }
     }
   }, []);
 
-  // ── Client-side local prediction solver (for offline or disconnected modes) ──
+  // ── Client-side local prediction solver (with smart dead-reckoning fallback) ──
   const updateLocalPrediction = useCallback((lat, lng, accuracy) => {
     const route = routeRef.current;
     const stationDetails = route?.stationDetails || [];
@@ -196,64 +281,86 @@ export function useGPSTracking() {
     const destination = stationDetails[stationDetails.length - 1];
     const destinationName = destination?.name || 'your destination';
 
-    // 1. Calculate distance to each station on our route
-    const candidates = stationDetails
-      .map((station, index) => {
-        if (!station.lat || !station.lng) return null;
-        const dist = getDistanceMeters(lat, lng, station.lat, station.lng);
-        return { station, distanceMeters: dist, index };
-      })
-      .filter(Boolean)
-      .sort((a, b) => a.distanceMeters - b.distanceMeters);
-
-    if (candidates.length === 0) return;
-
-    // Get current index from stopsRemainingCacheRef or default to 0
-    const currentIdx = stopsRemainingCacheRef.current !== null
-      ? Math.max(0, stationDetails.length - 1 - stopsRemainingCacheRef.current)
-      : 0;
-
-    let predictedStation = null;
-    let predictedIndex = currentIdx;
-    let method = 'in-transit';
-
-    // Threshold radius (meters) matching backend logic
     const STATION_MATCH_RADIUS = Math.min(500, Math.max(300, 300 + accuracy));
 
-    // A. Check if the user is close to any future station on the route path
-    const futureStations = candidates.filter(c => c.index > currentIdx);
-    const closestFuture = futureStations.find(c => c.distanceMeters <= STATION_MATCH_RADIUS);
-    if (closestFuture) {
-      predictedStation = closestFuture.station.name;
-      predictedIndex = closestFuture.index;
-      method = 'gps+route';
+    let allStations = state.allStations;
+    if (!allStations || allStations.length === 0) {
+      try {
+        allStations = JSON.parse(localStorage.getItem('metro_stations_cache')) || [];
+      } catch (_) {
+        allStations = [];
+      }
     }
 
-    // B. Check if the user is still at the current expected station
-    if (!predictedStation) {
-      const currentCandidate = candidates.find(c => c.index === currentIdx);
-      if (currentCandidate && currentCandidate.distanceMeters <= STATION_MATCH_RADIUS) {
-        predictedStation = currentCandidate.station.name;
-        predictedIndex = currentIdx;
+    let closestSystemStation = null;
+    let minSystemDistance = Infinity;
+
+    if (allStations.length > 0 && accuracy < 200) {
+      allStations.forEach(station => {
+        if (station.lat && station.lng) {
+          const dist = getDistanceMeters(lat, lng, station.lat, station.lng);
+          if (dist < minSystemDistance) {
+            minSystemDistance = dist;
+            closestSystemStation = station;
+          }
+        }
+      });
+    }
+
+    let predictedIndex = lastConfirmedIndexRef.current;
+    let method = 'dead-reckoning';
+    let predictedStation = null;
+    let isOffRoute = false;
+    let isWrongDirection = false;
+    let warningMessage = '';
+
+    if (closestSystemStation && minSystemDistance <= STATION_MATCH_RADIUS && accuracy < 200) {
+      const routeIdx = stationDetails.findIndex(
+        s => s.name.toLowerCase() === closestSystemStation.name.toLowerCase()
+      );
+
+      if (routeIdx === -1) {
+        predictedStation = closestSystemStation.name;
+        method = 'gps-offroute';
+        isOffRoute = true;
+        warningMessage = `You have gone off-route! You are near ${closestSystemStation.name}, which is not on your route.`;
+      } else if (routeIdx < predictedIndex) {
+        predictedStation = closestSystemStation.name;
+        method = 'gps-wrongdir';
+        isWrongDirection = true;
+        warningMessage = `Warning: You are traveling in the wrong direction! You are moving back towards ${closestSystemStation.name}.`;
+      } else {
+        predictedIndex = routeIdx;
+        predictedStation = closestSystemStation.name;
         method = 'gps+route';
+        
+        // Calibrate dead-reckoning anchor
+        lastConfirmedIndexRef.current = routeIdx;
+        lastConfirmedTimeRef.current = Date.now();
       }
     }
 
-    // C. Check off-route: closest station globally is NOT on/near current segment
+    // B. If no GPS match, use time-based dead-reckoning calculation
     if (!predictedStation) {
-      const closestGlobal = candidates[0];
-      if (Math.abs(closestGlobal.index - currentIdx) > 1 && closestGlobal.distanceMeters <= 300) {
-        predictedStation = closestGlobal.station.name;
-        predictedIndex = closestGlobal.index;
-        method = 'off-route';
-      }
+      const elapsedSeconds = (Date.now() - lastConfirmedTimeRef.current) / 1000;
+      const pred = getPredictiveState(elapsedSeconds, lastConfirmedIndexRef.current, stationDetails.length);
+      predictedIndex = pred.index;
+      predictedStation = stationDetails[predictedIndex]?.name || route.path[0];
+      method = `${pred.status}-predictive`;
     }
 
-    // D. In-transit fallback
-    if (!predictedStation) {
-      predictedStation = stationDetails[currentIdx]?.name || route.path[0];
-      predictedIndex = currentIdx;
-      method = 'in-transit';
+    // Deduplicated voice/notification alerts for off-route/wrong-direction
+    if (warningMessage) {
+      if (lastWarnedMessageRef.current !== warningMessage) {
+        lastWarnedMessageRef.current = warningMessage;
+        triggerBackgroundNotification(
+          isOffRoute ? '🚨 Off-Route Warning' : '⚠️ Wrong Direction Warning',
+          warningMessage
+        );
+        speakVoice(warningMessage);
+      }
+    } else {
+      lastWarnedMessageRef.current = '';
     }
 
     const stopsRemaining = stationDetails.length - 1 - predictedIndex;
@@ -267,10 +374,7 @@ export function useGPSTracking() {
       visited.push(stationDetails[i].name);
     }
 
-    const isOffRoute = method === 'off-route';
-    const warningMessage = isOffRoute
-      ? 'You have gone off-route! Tap Recalculate to get a new route from your current location.'
-      : '';
+    const interchangeAlert = getInterchangeAlert(predictedIndex, route, stationDetails);
 
     const localPred = {
       currentStation: predictedStation,
@@ -282,48 +386,21 @@ export function useGPSTracking() {
       method: `${method}-local`,
       visitedStations: visited,
       isOffRoute,
-      isWrongDirection: false,
+      isWrongDirection,
       warningMessage,
+      interchangeAlert,
     };
 
     dispatch({ type: 'SET_PREDICTION', payload: localPred });
 
-    // Handle offline alarms triggering
+    // Handle alarms and notifications triggering
     if (stopsRemaining <= 3) {
       fireAlert(stopsRemaining, nextStation, destinationName, 'local');
     }
+    
+    // Run interchange checks
     checkInterchangeAlert(predictedIndex, stationDetails);
-  }, [dispatch, fireAlert, checkInterchangeAlert]);
-
-  // ── Local proximity check (instant, no network needed) ──────────────────────
-  const checkLocalProximity = useCallback((lat, lng) => {
-    const route = routeRef.current;
-    const stationDetails = route?.stationDetails || [];
-    if (stationDetails.length === 0) return;
-
-    const destination = stationDetails[stationDetails.length - 1];
-    if (!destination?.lat || !destination?.lng) return;
-
-    const destinationName = destination.name || 'your destination';
-
-    // Walk from destination backwards and find the first station the user is near
-    for (let i = stationDetails.length - 1; i >= 0; i--) {
-      const s = stationDetails[i];
-      if (!s.lat || !s.lng) continue;
-      const dist = getDistanceMeters(lat, lng, s.lat, s.lng);
-      if (dist <= LOCAL_ALERT_RADIUS) {
-        // Proactively check for interchange alarms offline
-        checkInterchangeAlert(i, stationDetails);
-
-        const remaining = stationDetails.length - 1 - i; // stops from station i to end
-        const nextStation = stationDetails[i + 1]?.name || destinationName;
-        if (remaining <= 3) {
-          fireAlert(remaining, nextStation, destinationName, 'local');
-        }
-        break;
-      }
-    }
-  }, [fireAlert, checkInterchangeAlert]);
+  }, [dispatch, fireAlert, checkInterchangeAlert, state.allStations]);
 
   // ── Main location handler ────────────────────────────────────────────────────
   const processLocation = useCallback((lat, lng, accuracy) => {
@@ -341,10 +418,10 @@ export function useGPSTracking() {
       lastGpsCoordsRef.current = { lat, lng, accuracy };
     }
 
-    // 1. Immediate local proximity check — zero network latency
-    checkLocalProximity(lat, lng);
+    // 1. Immediate local prediction check — completely decoupled from network speed
+    updateLocalPrediction(lat, lng, accuracy);
 
-    // 2. Pick polling interval based on last known stops remaining
+    // 2. Pick polling interval based on last known stops remaining for network updates
     const cached = stopsRemainingCacheRef.current;
     const interval =
       cached != null && cached <= 1 ? POLL_CRITICAL :
@@ -358,7 +435,7 @@ export function useGPSTracking() {
     if (!activeTripId) return;
 
     if (activeTripId.startsWith('local-')) {
-      updateLocalPrediction(lat, lng, accuracy);
+      // Local predictions are handled offline
       return;
     }
 
@@ -370,31 +447,38 @@ export function useGPSTracking() {
     metroAPI.updateLocation({ tripId: activeTripId, lat, lng, accuracy })
       .then((res) => {
         if (!res?.data) return;
-        dispatch({ type: 'SET_PREDICTION', payload: res.data });
+
+        const backendIndex = res.data.currentIndex;
+        const interchangeAlert = getInterchangeAlert(backendIndex, route, stationDetails);
+
+        dispatch({ 
+          type: 'SET_PREDICTION', 
+          payload: { 
+            ...res.data, 
+            method: `${res.data.method}-backend`, 
+            interchangeAlert 
+          } 
+        });
 
         const remaining = res.data.stopsRemaining;
         stopsRemainingCacheRef.current = remaining;
-
-        // Perform online interchange check
-        const currentIndex = res.data.currentIndex;
-        if (currentIndex != null) {
-          checkInterchangeAlert(currentIndex, stationDetails);
-        }
 
         if (remaining != null && remaining <= 3) {
           const destinationName = destination?.name || 'your destination';
           const nextStation = res.data.nextStation || destinationName;
           fireAlert(remaining, nextStation, destinationName, 'backend');
         }
+
+        // Run background interchange checks online
+        checkInterchangeAlert(backendIndex, stationDetails);
       })
       .catch((err) => {
-        console.warn('[GPS] Network location update failed, falling back to local prediction solver');
-        updateLocalPrediction(lat, lng, accuracy);
+        console.warn('[GPS] Network location update failed, already handled by local prediction solver');
       });
 
     // 4. Also send via WebSocket (even faster for foreground)
     sendGpsUpdate(activeTripId, lat, lng, accuracy);
-  }, [dispatch, sendGpsUpdate, checkLocalProximity, fireAlert, checkInterchangeAlert, updateLocalPrediction]);
+  }, [dispatch, sendGpsUpdate, fireAlert, updateLocalPrediction, checkInterchangeAlert]);
 
   // ── Start / Stop Tracking ────────────────────────────────────────────────────
   const startTracking = useCallback(async () => {
@@ -407,7 +491,26 @@ export function useGPSTracking() {
     stopsRemainingCacheRef.current = null;
     lastAlertedInterchangeBeforeIndexRef.current = -1;
     lastAlertedInterchangeAtIndexRef.current = -1;
-    localStorage.removeItem('bg_last_alerted_stop');
+
+    // Reset dead-reckoning anchor
+    lastConfirmedIndexRef.current = 0;
+    lastConfirmedTimeRef.current = Date.now();
+
+    // Clean up past alerts from localStorage
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('metro_interchange_') || key.startsWith('bg_last_alerted_stop') || key.startsWith('metro_last_alarmed_stops'))) {
+        localStorage.removeItem(key);
+        i--;
+      }
+    }
+
+    // Start periodic background timer to run dead-reckoning updates every 5 seconds
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      const lastCoords = lastGpsCoordsRef.current;
+      updateLocalPrediction(lastCoords.lat || 0, lastCoords.lng || 0, lastCoords.accuracy || 999);
+    }, 5000);
 
     if (Capacitor.isNativePlatform()) {
       try {
@@ -439,9 +542,13 @@ export function useGPSTracking() {
         );
       }
     }
-  }, [dispatch, requestWakeLock, processLocation]);
+  }, [dispatch, requestWakeLock, processLocation, updateLocalPrediction]);
 
   const stopTracking = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
     if (watchIdRef.current != null) {
       if (Capacitor.isNativePlatform()) {
         BackgroundGeolocation.removeWatcher({ id: watchIdRef.current });

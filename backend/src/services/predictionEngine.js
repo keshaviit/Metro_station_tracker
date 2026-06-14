@@ -96,64 +96,38 @@ class PredictionEngine {
     let predictedStation = null;
     let confidence = gpsAccuracy <= 100 ? 'high' : 'medium';
     let method = 'in-transit';
+    let isOffRoute = false;
+    let isWrongDirection = false;
+    let warningMessage = '';
 
-    // 1. Check if user has arrived at the NEXT station or any FUTURE station along the planned route
-    const remainingStations = state.routePath.slice(state.currentIndex + 1);
-    for (const stationName of remainingStations) {
-      const candidate = nearestCandidates.find((c) => c.station.name === stationName);
-      if (candidate && candidate.distanceMeters <= STATION_MATCH_RADIUS) {
-        predictedStation = stationName;
-        method = 'gps+route';
-        break; // Advanced to the closest matching future station
-      }
-    }
-
-    // 2. If not at a future station, check if user is still close to the CURRENT station
-    if (!predictedStation) {
-      const currentStationName = state.routePath[state.currentIndex];
-      const candidate = nearestCandidates.find((c) => c.station.name === currentStationName);
-      if (candidate && candidate.distanceMeters <= STATION_MATCH_RADIUS) {
-        predictedStation = currentStationName;
-        method = 'gps+route';
-      }
-    }
-
-    // 3. Check for Off-Route: If the closest station globally is NOT on the planned route, and user is close to it
-    if (!predictedStation) {
-      const closestGlobal = nearestCandidates[0];
-      const isGlobalOnRoute = state.routePath.includes(closestGlobal.station.name);
-      if (!isGlobalOnRoute && closestGlobal.distanceMeters <= 300) {
+    const closestGlobal = nearestCandidates[0];
+    if (closestGlobal && closestGlobal.distanceMeters <= STATION_MATCH_RADIUS && gpsAccuracy < 200) {
+      const routeIdx = state.routePath.indexOf(closestGlobal.station.name);
+      if (routeIdx === -1) {
         predictedStation = closestGlobal.station.name;
         method = 'off-route';
+        isOffRoute = true;
+        warningMessage = `You have gone off-route! You are near ${closestGlobal.station.name}, which is not on your route.`;
+      } else if (routeIdx < state.currentIndex) {
+        predictedStation = closestGlobal.station.name;
+        method = 'wrong-direction';
+        isWrongDirection = true;
+        warningMessage = `Warning: You are traveling in the wrong direction! You are moving back towards ${closestGlobal.station.name}.`;
+      } else {
+        predictedStation = closestGlobal.station.name;
+        method = 'gps+route';
+        state.updateStation(predictedStation);
       }
     }
 
-    // 4. Fallback: If not close to any station, the user is IN-TRANSIT between the current station and the next
     if (!predictedStation) {
       predictedStation = state.lastKnownStation || state.routePath[0];
       method = 'in-transit';
     }
 
-    // Update active trip state index if we found a valid route station
-    if (method !== 'off-route' && method !== 'in-transit') {
-      state.updateStation(predictedStation);
-    }
-
     const nextStation = state.getNextStation();
     const stopsRemaining = state.stopsRemaining();
-    
-    // Ensure we trigger alerts for 2 stops, 1 stop, AND 0 stops remaining
     const shouldAlert = stopsRemaining <= 2;
-
-    const isOffRoute = method === 'off-route' || state.routePath.indexOf(predictedStation) === -1;
-    const isWrongDirection = state.direction === 'backward';
-    let warningMessage = '';
-
-    if (isOffRoute) {
-      warningMessage = 'You have gone off-route! Tap Recalculate to get a new route from your current location.';
-    } else if (isWrongDirection) {
-      warningMessage = 'Warning: You are traveling in the wrong direction! Please check your train direction.';
-    }
 
     return {
       currentStation: predictedStation,

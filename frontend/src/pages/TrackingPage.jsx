@@ -6,6 +6,7 @@ import { useNotification } from '../hooks/useNotification';
 import { metroAPI } from '../services/api';
 import MetroGraph from '../services/routeEngine';
 import { Capacitor } from '@capacitor/core';
+import { buyOfficialMetroTicket } from '../services/ticketService';
 
 const LINE_COLORS = {
   Blue: '#2563EB', Yellow: '#EAB308', Red: '#EF4444',
@@ -103,6 +104,9 @@ export default function TrackingPage() {
   const [presetSaved, setPresetSaved] = useState(null);
   const [showDebugPanel, setShowDebugPanel] = useState(false);
   const [showDisclosure, setShowDisclosure] = useState(false);
+  const [activeInterchangeAlert, setActiveInterchangeAlert] = useState(null);
+  const dismissedInterchangesRef = useRef(new Set());
+  const dismissedWarningAlarmRef = useRef('');
 
   const handleAcceptDisclosure = () => {
     localStorage.setItem('has_accepted_disclosure', 'true');
@@ -181,7 +185,7 @@ export default function TrackingPage() {
   }, [clearLoopingAlarm]);
 
   useEffect(() => {
-    if (!route) { navigate('/'); return; }
+    if (!route) return;
     
     const needsDisclosure = Capacitor.isNativePlatform() && localStorage.getItem('has_accepted_disclosure') !== 'true';
     if (needsDisclosure) {
@@ -190,44 +194,40 @@ export default function TrackingPage() {
       startTracking();
     }
     return () => stopTracking();
-  }, []);
+  }, [route]);
 
   useEffect(() => {
     const remaining = prediction?.stopsRemaining;
     if (remaining == null) return;
 
+    // Synchronize using localStorage key to prevent duplicate foreground alarms
+    const lsKey = 'metro_last_alarmed_stops';
+    const lastAlarmed = parseInt(localStorage.getItem(lsKey) ?? '-1');
+    if (lastAlarmed === remaining) return;
+
     if (remaining === 3) {
       if (lastAlertedStopsRef.current !== 3) {
         lastAlertedStopsRef.current = 3;
+        localStorage.setItem(lsKey, '3');
         startLoopingAlarm('approaching');
-        const msg = `${destinationName} is 3 stops away. Get ready!`;
-        notify('🚇 3 Stations to Go!', msg);
-        speakVoice(`${destinationName} is three stations away. Please get ready.`);
       }
     } else if (remaining === 2) {
       if (lastAlertedStopsRef.current !== 2) {
         lastAlertedStopsRef.current = 2;
+        localStorage.setItem(lsKey, '2');
         startLoopingAlarm('next-to-next');
-        const nextName = prediction.nextStation || destinationName;
-        const msg = `Approaching ${nextName}. Prepare to deboard soon!`;
-        notify('🔔 Next-to-Next Station Alert!', msg);
-        speakVoice(`Approaching ${nextName}. Prepare to deboard soon.`);
       }
     } else if (remaining === 1) {
       if (lastAlertedStopsRef.current !== 1) {
         lastAlertedStopsRef.current = 1;
+        localStorage.setItem(lsKey, '1');
         startLoopingAlarm('next');
-        const msg = `The very next station is ${destinationName}. Prepare to deboard!`;
-        notify('🚨 Next Station Alert!', msg);
-        speakVoice(`The next station is ${destinationName}. Please prepare to deboard.`);
       }
     } else if (remaining === 0) {
       if (lastAlertedStopsRef.current !== 0) {
         lastAlertedStopsRef.current = 0;
+        localStorage.setItem(lsKey, '0');
         startLoopingAlarm('arrived');
-        const msg = `You have arrived at ${destinationName}!`;
-        notify('🎉 Deboard Now!', msg);
-        speakVoice(`You have arrived at ${destinationName}. Please deboard now.`);
         stopTracking();
         if (state.tripId) {
           metroAPI.endTrip(state.tripId).catch(() => {});
@@ -252,45 +252,47 @@ export default function TrackingPage() {
         lastAlertedStopsRef.current = null;
       }
     }
-  }, [prediction?.stopsRemaining, prediction?.nextStation, destinationName, state.tripId, stopTracking, notify, startLoopingAlarm, clearLoopingAlarm, activeAlarm]);
+  }, [prediction?.stopsRemaining, prediction?.nextStation, destinationName, state.tripId, stopTracking, startLoopingAlarm, clearLoopingAlarm, activeAlarm]);
 
-  // Interchange Alerts effect (Voice + Notification guidance)
   useEffect(() => {
-    const currentIndex = prediction?.currentIndex;
-    const stationDetails = route?.stationDetails;
-    if (currentIndex == null || !stationDetails || stationDetails.length === 0) return;
-
-    // 1. One station before interchange
-    const nextIdx = currentIndex + 1;
-    if (nextIdx > 0 && nextIdx < stationDetails.length - 1) {
-      const prev = stationDetails[nextIdx - 1];
-      const next = stationDetails[nextIdx + 1];
-      if (prev && next && prev.line !== next.line) {
-        if (lastAlertedInterchangeBeforeRef.current !== nextIdx) {
-          lastAlertedInterchangeBeforeRef.current = nextIdx;
-          const interchangeName = stationDetails[nextIdx].name;
-          const msg = `Next station is ${interchangeName}. Please prepare to interchange to the ${next.line} Line.`;
-          notify('🔄 Interchange Ahead', msg);
-          speakVoice(`Next station is ${interchangeName}. Please prepare to interchange to the ${next.line} Line.`);
-        }
-      }
+    const alert = prediction?.interchangeAlert;
+    if (!alert) {
+      setActiveInterchangeAlert(null);
+      return;
     }
 
-    // 2. Arrived at interchange station
-    if (currentIndex > 0 && currentIndex < stationDetails.length - 1) {
-      const prev = stationDetails[currentIndex - 1];
-      const next = stationDetails[currentIndex + 1];
-      if (prev && next && prev.line !== next.line) {
-        if (lastAlertedInterchangeAtRef.current !== currentIndex) {
-          lastAlertedInterchangeAtRef.current = currentIndex;
-          const interchangeName = stationDetails[currentIndex].name;
-          const msg = `Arrived at ${interchangeName}. Please switch to the ${next.line} Line.`;
-          notify('🔄 Interchange Station', msg);
-          speakVoice(`Arrived at ${interchangeName}. Please switch to the ${next.line} Line.`);
-        }
+    const alertKey = `${alert.type}_${alert.stationName}`;
+    if (!dismissedInterchangesRef.current.has(alertKey)) {
+      setActiveInterchangeAlert(alert);
+      
+      try {
+        const msg = alert.type === 'at' 
+          ? `Arrived at interchange station ${alert.stationName}. Please switch to the ${alert.targetLine} Line.`
+          : `Next station is interchange station ${alert.stationName}. Prepare to switch to the ${alert.targetLine} Line soon.`;
+        
+        playMetroChime();
+        triggerVibration([300, 100, 300]);
+        speakVoice(msg);
+      } catch (err) {
+        console.warn('Interchange alert audio feedback failed:', err);
       }
     }
-  }, [prediction?.currentIndex, route?.stationDetails, notify]);
+  }, [prediction?.interchangeAlert]);
+
+  useEffect(() => {
+    const warning = prediction?.warningMessage;
+    if (!warning) {
+      if (activeAlarm === 'wrong-route') {
+        clearLoopingAlarm();
+      }
+      dismissedWarningAlarmRef.current = '';
+      return;
+    }
+
+    if (dismissedWarningAlarmRef.current !== warning) {
+      startLoopingAlarm('wrong-route');
+    }
+  }, [prediction?.warningMessage, startLoopingAlarm, clearLoopingAlarm, activeAlarm]);
 
   const handleEndTrip = async () => {
     clearLoopingAlarm();
@@ -465,7 +467,47 @@ export default function TrackingPage() {
     }
   };
 
-  if (!route) return null;
+  if (!route) {
+    return (
+      <div className="bg-background text-on-background font-body-lg antialiased min-h-screen relative flex flex-col pt-safe">
+        {/* Navigation Header */}
+        <nav className="fixed top-0 w-full z-[8000] bg-surface/80 backdrop-blur-md text-primary font-title-md text-title-md border-b border-outline-variant/30 shadow-sm flex items-center justify-between px-margin-mobile h-16 w-full mt-safe">
+          <div className="flex items-center gap-sm">
+            <button onClick={() => navigate('/')} className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-highest/50 transition-colors active:scale-95 duration-200">
+              <span className="material-symbols-outlined text-primary">arrow_back</span>
+            </button>
+            <h1 className="font-headline-lg-mobile text-headline-lg-mobile text-primary tracking-tight font-extrabold">MetroPulse</h1>
+          </div>
+        </nav>
+
+        {/* Center Card */}
+        <main className="flex-1 flex flex-col items-center justify-center px-6 text-center space-y-6 pt-16">
+          <div className="w-20 h-20 bg-primary/10 border border-primary/20 rounded-full flex items-center justify-center text-primary relative animate-pulse">
+            <span className="material-symbols-outlined text-[44px]">subway</span>
+            <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-amber-500"></span>
+            </span>
+          </div>
+
+          <div className="space-y-2 max-w-sm">
+            <h2 className="text-2xl font-black text-on-surface tracking-wide uppercase">No Tracking Ongoing</h2>
+            <p className="text-sm text-on-surface-variant leading-relaxed">
+              You don't have an active trip currently being tracked. Start a journey from the Home Page to monitor your route, receive live station alerts, and get seamless transfer updates.
+            </p>
+          </div>
+
+          <button
+            onClick={() => navigate('/')}
+            className="w-full max-w-sm h-12 bg-primary text-on-primary rounded-xl font-label-md text-label-md font-bold active:scale-[0.98] transition-all shadow-md text-white flex items-center justify-center gap-2"
+          >
+            <span className="material-symbols-outlined text-[18px]">map</span>
+            Plan a Journey
+          </button>
+        </main>
+      </div>
+    );
+  }
 
   const alarmConfig = {
     'approaching': {
@@ -499,6 +541,14 @@ export default function TrackingPage() {
       borderColor: 'border-emerald-500/50',
       textColor: 'text-emerald-600',
       barColor: 'bg-emerald-500',
+    },
+    'wrong-route': {
+      emoji: '🚨',
+      title: prediction?.isOffRoute ? 'Off-Route Warning!' : 'Wrong Direction!',
+      subtitle: prediction?.warningMessage || 'Please check your train or path.',
+      borderColor: 'border-red-500/80 shadow-[0_0_20px_rgba(239,68,68,0.3)] animate-pulse',
+      textColor: 'text-red-600 font-extrabold',
+      barColor: 'bg-red-500',
     },
   };
 
@@ -689,11 +739,51 @@ export default function TrackingPage() {
             )}
 
             <button
-              onClick={clearLoopingAlarm}
+              onClick={() => {
+                if (activeAlarm === 'wrong-route' && prediction?.warningMessage) {
+                  dismissedWarningAlarmRef.current = prediction.warningMessage;
+                }
+                clearLoopingAlarm();
+              }}
               className="w-full h-12 flex items-center justify-center gap-sm bg-primary text-on-primary rounded-xl font-label-md text-label-md active:scale-[0.98] transition-all text-white font-bold shadow-md"
             >
               <span className="material-symbols-outlined text-[20px]">volume_off</span>
               Dismiss Alarm Alert
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Interchange Alert Modal Overlay */}
+      {activeInterchangeAlert && (
+        <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/75 backdrop-blur-md animate-fade-in px-4">
+          <div className="relative w-[92%] max-w-sm mx-auto rounded-2xl border-2 border-amber-500/60 bg-surface p-6 space-y-4 text-center shadow-[0_0_60px_rgba(0,0,0,0.5)] animate-scale-up">
+            <div className="text-6xl mx-auto pt-2">🔄</div>
+            <h2 className="text-xl font-black text-amber-600 tracking-wide uppercase">
+              {activeInterchangeAlert.type === 'at' ? 'Interchange Station!' : 'Interchange Ahead!'}
+            </h2>
+            <p className="text-sm text-on-surface-variant leading-relaxed">
+              {activeInterchangeAlert.type === 'at' ? (
+                <>
+                  You have arrived at <strong>{activeInterchangeAlert.stationName}</strong>. Please switch to the <span className="text-primary font-bold">{activeInterchangeAlert.targetLine} Line</span>.
+                </>
+              ) : (
+                <>
+                  The next station is <strong>{activeInterchangeAlert.stationName}</strong>. Prepare to transfer to the <span className="text-primary font-bold">{activeInterchangeAlert.targetLine} Line</span>.
+                </>
+              )}
+            </p>
+
+            <button
+              onClick={() => {
+                const alertKey = `${activeInterchangeAlert.type}_${activeInterchangeAlert.stationName}`;
+                dismissedInterchangesRef.current.add(alertKey);
+                setActiveInterchangeAlert(null);
+              }}
+              className="w-full h-12 flex items-center justify-center gap-sm bg-primary text-on-primary rounded-xl font-label-md text-label-md active:scale-[0.98] transition-all text-white font-bold shadow-md"
+            >
+              <span className="material-symbols-outlined text-[20px]">done</span>
+              Got It, Thanks!
             </button>
           </div>
         </div>
@@ -736,6 +826,26 @@ export default function TrackingPage() {
               </span>
             </div>
           </div>
+        </section>
+
+        {/* WhatsApp QR Ticket Bento Section */}
+        <section className="bg-emerald-600/10 border border-emerald-500/20 rounded-xl p-md flex items-center justify-between gap-sm animate-fade-in">
+          <div className="flex items-center gap-sm">
+            <span className="material-symbols-outlined text-emerald-500 text-[28px]">qr_code_2</span>
+            <div className="text-left">
+              <p className="text-xs font-bold text-emerald-500">Need a Metro Ticket?</p>
+              <p className="text-[10px] text-on-surface-variant">Instantly book your official QR ticket on WhatsApp.</p>
+            </div>
+          </div>
+          <button
+            onClick={buyOfficialMetroTicket}
+            className="px-3.5 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white-force rounded-lg font-label-md text-xs font-bold shadow-sm active:scale-[0.98] transition-all flex items-center gap-2"
+          >
+            <svg className="w-4 h-4 fill-current text-white-force" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.374-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.746.953 3.71 1.454 5.709 1.455h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+            </svg>
+            Buy Ticket
+          </button>
         </section>
 
         {/* Notification Permission Banner */}
