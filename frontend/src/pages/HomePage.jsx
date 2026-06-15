@@ -370,10 +370,31 @@ export default function HomePage() {
         {/* Decorative Background */}
         <div className="absolute top-10 left-1/4 w-[300px] h-[300px] bg-primary/5 rounded-full blur-[80px] pointer-events-none" />
 
+        {/* MetroPulse Hero Banner */}
+        <div className="relative w-full rounded-3xl overflow-hidden aspect-[2/1] md:aspect-[2.2/1] border border-outline-variant/20 shadow-lg group">
+          <img 
+            src="/src/assets/home_banner.png" 
+            alt="MetroPulse - Your Metro, Made Easy" 
+            className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-700" 
+          />
+          {/* Overlay gradient */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+          
+          {/* Book Tickets Float Button */}
+          <div className="absolute bottom-4 right-4 z-10">
+            <button
+              onClick={buyOfficialMetroTicket}
+              className="px-6 py-2.5 bg-[#00bfa5] text-black font-extrabold text-[12px] rounded-full flex items-center gap-2 shadow-md hover:scale-105 active:scale-95 transition-all uppercase tracking-wider"
+            >
+              <span className="material-symbols-outlined text-[16px] font-bold">qr_code_2</span>
+              Book Tickets
+            </button>
+          </div>
+        </div>
+
         {/* Greeting Section */}
-        <header className="space-y-sm relative z-10 mt-6">
-          <p className="text-primary font-bold text-[26px] uppercase tracking-wider">Hello, {username}</p>
-          <h2 className="text-[38px] text-on-surface tracking-tight font-black leading-tight mt-1">Where are you going today?</h2>
+        <header className="space-y-sm relative z-10 mt-2">
+          <h2 className="text-[28px] md:text-[32px] text-[#00a884] tracking-tight font-bold leading-tight">Hi, where are you going today?</h2>
         </header>
 
         {/* Route Selector Card */}
