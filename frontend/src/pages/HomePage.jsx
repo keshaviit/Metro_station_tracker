@@ -221,7 +221,7 @@ export default function HomePage() {
             
             <div className="flex flex-col flex-1">
               <span className="text-[11px] font-bold text-[#00a884] uppercase tracking-wider mb-0.5">From</span>
-              <div className="flex justify-between items-center w-full">
+              <div className="flex justify-between items-center w-full pr-10">
                 <input
                   type="text"
                   placeholder="Select starting station..."
@@ -229,8 +229,16 @@ export default function HomePage() {
                   readOnly={true}
                   className="w-full bg-transparent outline-none text-gray-800 text-[16px] placeholder:text-gray-400 cursor-pointer"
                 />
-                <button onClick={detectNearest} className="text-[#00a884] flex-shrink-0 ml-2 active:scale-90 transition-transform p-1">
-                  <span className="material-symbols-outlined text-[20px]">my_location</span>
+                <button 
+                  onClick={detectNearest} 
+                  className="text-[#00a884] flex-shrink-0 ml-2 active:scale-90 transition-all p-1 flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-50"
+                  title="Detect nearest station"
+                >
+                  {nearestLoading ? (
+                    <div className="w-5 h-5 border-2 border-[#00a884] border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <span className="material-symbols-outlined text-[20px]">my_location</span>
+                  )}
                 </button>
               </div>
             </div>
@@ -250,13 +258,15 @@ export default function HomePage() {
             
             <div className="flex flex-col flex-1">
               <span className="text-[11px] font-bold text-[#ea4335] uppercase tracking-wider mb-0.5">To</span>
-              <input
-                type="text"
-                placeholder="Select destination station..."
-                value={destination}
-                readOnly={true}
-                className="w-full bg-transparent outline-none text-gray-800 text-[16px] placeholder:text-gray-400 pr-8 cursor-pointer"
-              />
+              <div className="flex justify-between items-center w-full pr-10">
+                <input
+                  type="text"
+                  placeholder="Select destination station..."
+                  value={destination}
+                  readOnly={true}
+                  className="w-full bg-transparent outline-none text-gray-800 text-[16px] placeholder:text-gray-400 cursor-pointer"
+                />
+              </div>
             </div>
           </div>
         </div>
