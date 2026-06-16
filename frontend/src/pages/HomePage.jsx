@@ -346,11 +346,7 @@ export default function HomePage() {
       </div>
       </div>
 
-      {/* Decorative center logo to keep home page elegant */}
-      <div className="flex-1 flex flex-col items-center justify-center px-8 opacity-[0.25] select-none pointer-events-none mt-4 pb-28">
-        <span className="material-symbols-outlined text-[80px] text-[#4CAF50]">subway</span>
-        <span className="text-sm font-bold text-gray-400 mt-2 tracking-wider uppercase">Delhi Transit System</span>
-      </div>
+
 
     </div>
   );
