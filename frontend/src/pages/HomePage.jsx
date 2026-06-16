@@ -312,17 +312,32 @@ export default function HomePage() {
       {/* Quick Access Stations Section */}
       <div className="mt-4 px-1 flex flex-col">
         <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 ml-1 flex-shrink-0">
-          {uniqueRecentStations.length > 0 ? 'Recent Stations' : 'Popular Stations'}
+          Recent Stations
         </h3>
-        <div className="overflow-y-auto max-h-52 pr-1 space-y-0.5">
-          {(uniqueRecentStations.length > 0 ? uniqueRecentStations : ['Rajiv Chowk', 'Kashmere Gate', 'Noida Sector 52', 'Dwarka Sector 21', 'Botanical Garden']).map(station => (
+        <div className="overflow-y-auto max-h-[280px] pr-1 space-y-0.5">
+          {/* Recent Stations */}
+          {uniqueRecentStations.map(station => (
             <div
-              key={station}
+              key={`recent-${station}`}
               onClick={() => handleQuickSelect(station)}
               className="flex items-center py-3 border-b border-gray-50 cursor-pointer active:bg-gray-50 transition-colors px-1"
             >
               <span className="material-symbols-outlined text-slate-400 mr-4 text-[20px]">
-                {uniqueRecentStations.length > 0 ? 'history' : 'location_on'}
+                history
+              </span>
+              <span className="text-gray-800 text-[15px] font-semibold">{station}</span>
+            </div>
+          ))}
+
+          {/* Other Stations */}
+          {othersToDisplay.map(station => (
+            <div
+              key={`all-${station}`}
+              onClick={() => handleQuickSelect(station)}
+              className="flex items-center py-3 border-b border-gray-50 cursor-pointer active:bg-gray-50 transition-colors px-1"
+            >
+              <span className="material-symbols-outlined text-slate-400 mr-4 text-[20px]">
+                location_on
               </span>
               <span className="text-gray-800 text-[15px] font-semibold">{station}</span>
             </div>
