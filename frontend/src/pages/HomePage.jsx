@@ -213,35 +213,35 @@ export default function HomePage() {
           className="flex flex-col justify-center px-4 py-2.5 min-h-[64px] border-b border-gray-100 transition-colors rounded-t-[20px] active:bg-gray-50/50 cursor-pointer"
           onClick={() => navigate('/search-station', { state: { type: 'source', source, destination } })}
         >
-          <div className="flex items-center w-full gap-3">
+          {/* Label Row */}
+          <div className="pl-[30px]">
+            <span className="text-[11px] font-bold text-[#00a884] uppercase tracking-wider block leading-none">From</span>
+          </div>
+          
+          {/* Input Row */}
+          <div className="flex items-center w-full gap-3 mt-1 h-8 pr-12">
             {/* Green dot icon */}
-            <div className="w-[18px] h-[18px] rounded-full border-[3px] border-[#00a884] flex-shrink-0 relative mt-3">
+            <div className="w-[18px] h-[18px] rounded-full border-[3px] border-[#00a884] flex-shrink-0 relative">
               <div className="absolute inset-0 m-auto w-1.5 h-1.5 bg-[#00a884] rounded-full"></div>
             </div>
             
-            <div className="flex flex-col flex-1">
-              <span className="text-[11px] font-bold text-[#00a884] uppercase tracking-wider mb-0.5">From</span>
-              <div className="flex justify-between items-center w-full pr-10">
-                <input
-                  type="text"
-                  placeholder="Select starting station..."
-                  value={source}
-                  readOnly={true}
-                  className="w-full bg-transparent outline-none text-gray-800 text-[16px] placeholder:text-gray-400 cursor-pointer"
-                />
-                <button 
-                  onClick={detectNearest} 
-                  className="text-[#00a884] flex-shrink-0 ml-2 active:scale-90 transition-all p-1 flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-50"
-                  title="Detect nearest station"
-                >
-                  {nearestLoading ? (
-                    <div className="w-5 h-5 border-2 border-[#00a884] border-t-transparent rounded-full animate-spin"></div>
-                  ) : (
-                    <span className="material-symbols-outlined text-[20px]">my_location</span>
-                  )}
-                </button>
-              </div>
-            </div>
+            {/* Input Display */}
+            <span className={`flex-1 text-[16px] cursor-pointer truncate leading-none ${source ? 'text-gray-800 font-semibold' : 'text-gray-400'}`}>
+              {source || 'Select starting station...'}
+            </span>
+
+            {/* GPS Location button */}
+            <button 
+              onClick={detectNearest} 
+              className="text-[#00a884] flex-shrink-0 ml-2 active:scale-90 transition-all flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-50"
+              title="Detect nearest station"
+            >
+              {nearestLoading ? (
+                <div className="w-5 h-5 border-2 border-[#00a884] border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <span className="material-symbols-outlined text-[20px] flex items-center justify-center">my_location</span>
+              )}
+            </button>
           </div>
         </div>
 
@@ -250,24 +250,22 @@ export default function HomePage() {
           className="flex flex-col justify-center px-4 py-2.5 min-h-[64px] transition-colors rounded-b-[20px] active:bg-gray-50/50 cursor-pointer"
           onClick={() => navigate('/search-station', { state: { type: 'destination', source, destination } })}
         >
-          <div className="flex items-center w-full gap-3">
+          {/* Label Row */}
+          <div className="pl-[30px]">
+            <span className="text-[11px] font-bold text-[#ea4335] uppercase tracking-wider block leading-none">To</span>
+          </div>
+
+          {/* Input Row */}
+          <div className="flex items-center w-full gap-3 mt-1 h-8 pr-12">
             {/* Red dot icon */}
-            <div className="w-[18px] h-[18px] rounded-full border-[3px] border-[#ea4335] flex-shrink-0 relative mt-3">
+            <div className="w-[18px] h-[18px] rounded-full border-[3px] border-[#ea4335] flex-shrink-0 relative">
               <div className="absolute inset-0 m-auto w-1.5 h-1.5 bg-[#ea4335] rounded-full"></div>
             </div>
             
-            <div className="flex flex-col flex-1">
-              <span className="text-[11px] font-bold text-[#ea4335] uppercase tracking-wider mb-0.5">To</span>
-              <div className="flex justify-between items-center w-full pr-10">
-                <input
-                  type="text"
-                  placeholder="Select destination station..."
-                  value={destination}
-                  readOnly={true}
-                  className="w-full bg-transparent outline-none text-gray-800 text-[16px] placeholder:text-gray-400 cursor-pointer"
-                />
-              </div>
-            </div>
+            {/* Input Display */}
+            <span className={`flex-1 text-[16px] cursor-pointer truncate leading-none ${destination ? 'text-gray-800 font-semibold' : 'text-gray-400'}`}>
+              {destination || 'Select destination station...'}
+            </span>
           </div>
         </div>
 
