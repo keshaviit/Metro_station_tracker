@@ -422,9 +422,9 @@ export default function AuthPage() {
 
           {/* Card Footer Links */}
           <div className="flex items-center justify-center gap-4 mt-8 pt-6 border-t border-gray-100 text-xs font-bold text-gray-400">
-            <a href="#" className="hover:text-gray-600 transition-colors">Privacy Policy</a>
+            <a href="/privacy-policy.html" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 transition-colors">Privacy Policy</a>
             <span className="text-gray-200">|</span>
-            <a href="#" className="hover:text-gray-600 transition-colors">Help Center</a>
+            <a href="mailto:privacy@metrotracker.app" className="hover:text-gray-600 transition-colors">Contact Us</a>
           </div>
 
         </div>

@@ -765,20 +765,22 @@ export default function TrackingPage() {
             {/* Left Edge: Start Station & Ellipsis (Only if hidden) */}
             {miniMapStations[0]?.originalIndex > 0 && (
               <div className="flex items-center gap-1.5 mr-1 opacity-60">
-                <div className="flex flex-col items-center">
-                  <div className="w-1.5 h-1.5 rounded-full bg-outline-variant"></div>
-                  <span className="text-[7px] font-bold text-on-surface-variant w-10 text-center truncate mt-1">
-                    {route.path[0].split(' ').slice(0,2).join(' ')}
-                  </span>
+                <div className="flex flex-col items-center relative z-10 w-4">
+                  <div className="w-1.5 h-1.5 rounded-full bg-outline-variant relative z-10"></div>
+                  <div className="absolute left-1/2 -translate-x-1/2 top-4 w-12 text-center">
+                    <span className="block text-[7px] font-bold text-on-surface-variant leading-tight">
+                      {route.path[0].split(' ').slice(0,2).join(' ')}
+                    </span>
+                  </div>
                 </div>
                 <span className="text-outline-variant font-black tracking-widest text-xs">...</span>
               </div>
             )}
 
             {/* Middle: The 5-Station Live Track */}
-            <div className="relative flex-1 h-32 flex items-start pt-8 justify-between px-2">
+            <div className="relative flex-1 h-24 flex items-center justify-between px-2">
               {/* The Background Track Line (Thick Gray to connect dots) */}
-              <div className="absolute left-4 right-4 h-[6px] bg-[#E2E8F0] rounded-full top-8 -translate-y-1/2 z-0">
+              <div className="absolute left-2 right-2 top-1/2 -translate-y-1/2 h-[6px] bg-[#E2E8F0] rounded-full z-0">
                 {/* The Active Filled Track Line */}
                 <div 
                   className="absolute left-0 h-full rounded-full transition-all duration-1000 ease-in-out" 
@@ -815,22 +817,23 @@ export default function TrackingPage() {
                 const isUpcoming = station.status === 'upcoming';
                 // Always ensure active line color takes precedence for consistency, or use node's native line color
                 const nodeColor = station.lineColor ? (LINE_COLORS[station.lineColor] || 'var(--primary)') : 'var(--primary)';
+                const isTop = idx % 2 !== 0;
 
                 return (
                   <div key={`${station.name}-${idx}`} className="flex flex-col items-center relative z-10 w-4">
                     {/* The dot */}
                     <div 
-                      className={`w-3.5 h-3.5 rounded-full border-2 transition-all duration-500 absolute -top-[7px] left-1/2 -translate-x-1/2 ${isActive ? 'scale-150 shadow-[0_0_12px_rgba(0,0,0,0.2)] bg-white' : isPast ? 'bg-white' : 'bg-surface-container-lowest border-outline-variant/60'}`}
+                      className={`w-3.5 h-3.5 rounded-full border-2 transition-all duration-500 relative z-10 ${isActive ? 'scale-150 shadow-[0_0_12px_rgba(0,0,0,0.2)] bg-white' : isPast ? 'bg-white' : 'bg-surface-container-lowest border-outline-variant/60'}`}
                       style={{ borderColor: isUpcoming ? undefined : nodeColor }}
                     >
                       {isActive && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: nodeColor }}></div>}
                     </div>
-                    {/* Station Name text - Rotated 45 degrees to avoid overlap */}
-                    <span 
-                      className={`absolute top-4 left-1/2 origin-top-left rotate-[40deg] w-24 text-left leading-tight tracking-wide ${isActive ? 'font-bold text-[10px] text-on-surface' : 'text-[9px] text-on-surface-variant font-medium'}`}
-                    >
-                      {station.name.split(' ').slice(0, 2).join(' ')}{station.name.split(' ').length > 2 ? '...' : ''}
-                    </span>
+                    {/* Station Name text - Alternating Top/Bottom to avoid overlap */}
+                    <div className={`absolute left-1/2 -translate-x-1/2 w-16 text-center ${isTop ? 'bottom-6' : 'top-6'}`}>
+                      <span className={`block text-[9px] leading-tight ${isActive ? 'font-bold text-on-surface text-[10px]' : 'font-medium text-on-surface-variant'}`}>
+                        {station.name}
+                      </span>
+                    </div>
                   </div>
                 );
               })}
@@ -840,11 +843,13 @@ export default function TrackingPage() {
             {miniMapStations[miniMapStations.length - 1]?.originalIndex < route.path.length - 1 && (
               <div className="flex items-center gap-1.5 ml-1 opacity-60">
                 <span className="text-outline-variant font-black tracking-widest text-xs">...</span>
-                <div className="flex flex-col items-center">
-                  <div className="w-1.5 h-1.5 rounded-full bg-outline-variant"></div>
-                  <span className="text-[7px] font-bold text-on-surface-variant w-10 text-center truncate mt-1">
-                    {destinationName.split(' ').slice(0,2).join(' ')}
-                  </span>
+                <div className="flex flex-col items-center relative z-10 w-4">
+                  <div className="w-1.5 h-1.5 rounded-full bg-outline-variant relative z-10"></div>
+                  <div className="absolute left-1/2 -translate-x-1/2 top-4 w-12 text-center">
+                    <span className="block text-[7px] font-bold text-on-surface-variant leading-tight">
+                      {destinationName.split(' ').slice(0,2).join(' ')}
+                    </span>
+                  </div>
                 </div>
               </div>
             )}

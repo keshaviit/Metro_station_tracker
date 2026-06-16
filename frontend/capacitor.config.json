@@ -1,5 +1,5 @@
 {
-  "appId": "com.trackmymetro.app",
+  "appId": "com.metrotracker.app",
   "appName": "Metro Tracker",
   "webDir": "dist",
   "server": {

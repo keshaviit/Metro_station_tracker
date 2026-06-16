@@ -22,3 +22,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Android signing credentials — NEVER commit these
+android/keystore.properties
+android/app/release.keystore
+*.keystore
+*.jks
+
+# Environment secrets — NEVER commit these
+.env
+.env.local
+.env.production
+.env*.local

@@ -1,10 +1,17 @@
 apply plugin: 'com.android.application'
 
+// Load keystore credentials from keystore.properties (not committed to git)
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
-    namespace = "com.trackmymetro.app"
+    namespace = "com.metrotracker.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.trackmymetro.app"
+        applicationId "com.metrotracker.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -18,10 +25,10 @@ android {
     }
     signingConfigs {
         release {
-            storeFile file("release.keystore")
-            storePassword "metropulse123"
-            keyAlias "release"
-            keyPassword "metropulse123"
+            storeFile file(keystoreProperties['storeFile'] ?: 'release.keystore')
+            storePassword keystoreProperties['storePassword']
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
         }
     }
     buildTypes {
