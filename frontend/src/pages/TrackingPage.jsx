@@ -469,42 +469,53 @@ export default function TrackingPage() {
 
   if (!route) {
     return (
-      <div className="bg-background text-on-background font-body-lg antialiased min-h-screen relative flex flex-col pt-safe">
-        {/* Navigation Header */}
-        <nav className="fixed top-0 w-full z-[8000] bg-surface/80 backdrop-blur-md text-primary font-title-md text-title-md border-b border-outline-variant/30 shadow-sm flex items-center justify-between px-margin-mobile h-16 w-full mt-safe">
-          <div className="flex items-center gap-sm">
-            <button onClick={() => navigate('/')} className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-highest/50 transition-colors active:scale-95 duration-200">
-              <span className="material-symbols-outlined text-primary">arrow_back</span>
-            </button>
-            <h1 className="font-headline-lg-mobile text-headline-lg-mobile text-primary tracking-tight font-extrabold">MetroPulse</h1>
-          </div>
-        </nav>
+      <div className="bg-[#f8fafc] bg-[radial-gradient(#e2e8f0_1.2px,transparent_1.2px)] [background-size:16px_16px] min-h-screen relative flex items-center justify-center p-6 pb-[96px]">
+        {/* White Card */}
+        <div className="bg-white border border-gray-100 rounded-[28px] p-8 w-full max-w-[360px] shadow-[0_8px_30px_rgba(0,0,0,0.04)] text-center flex flex-col items-center">
+          
+          {/* Circular Map Icon badge */}
+          <div className="w-40 h-40 rounded-full bg-[#f8fafc] border border-gray-100 flex items-center justify-center relative shadow-inner mb-8 overflow-hidden">
+            {/* SVG Grid */}
+            <svg width="120" height="120" viewBox="0 0 120 120" className="absolute inset-0 m-auto opacity-70">
+              <defs>
+                <pattern id="cardGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+                  <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e2e8f0" strokeWidth="1" />
+                </pattern>
+              </defs>
+              <circle cx="60" cy="60" r="58" fill="url(#cardGrid)" stroke="#f1f5f9" strokeWidth="2" />
+            </svg>
 
-        {/* Center Card */}
-        <main className="flex-1 flex flex-col items-center justify-center px-6 text-center space-y-6 pt-16">
-          <div className="w-20 h-20 bg-primary/10 border border-primary/20 rounded-full flex items-center justify-center text-primary relative animate-pulse">
-            <span className="material-symbols-outlined text-[44px]">subway</span>
-            <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-amber-500"></span>
+            {/* Teal Location Pin */}
+            <span className="material-symbols-outlined text-[#00a884] text-[44px] relative z-10" style={{ fontVariationSettings: "'FILL' 1" }}>
+              location_on
             </span>
+
+            {/* Overlapping Cancel badge at bottom right */}
+            <div className="absolute bottom-6 right-6 w-8 h-8 rounded-full bg-white border border-[#00a884] flex items-center justify-center text-[#00a884] shadow-md z-20">
+              <span className="material-symbols-outlined text-[16px] font-bold">close</span>
+            </div>
           </div>
 
-          <div className="space-y-2 max-w-sm">
-            <h2 className="text-2xl font-black text-on-surface tracking-wide uppercase">No Tracking Ongoing</h2>
-            <p className="text-sm text-on-surface-variant leading-relaxed">
-              You don't have an active trip currently being tracked. Start a journey from the Home Page to monitor your route, receive live station alerts, and get seamless transfer updates.
-            </p>
-          </div>
+          {/* Heading */}
+          <h2 className="text-[22px] font-extrabold text-gray-900 tracking-tight leading-tight mb-2">
+            No Active Trips
+          </h2>
 
+          {/* Description */}
+          <p className="text-gray-500 text-sm leading-relaxed mb-8 max-w-[260px]">
+            Start a journey from the Home Page to monitor your route and receive live updates.
+          </p>
+
+          {/* Button */}
           <button
             onClick={() => navigate('/')}
-            className="w-full max-w-sm h-12 bg-primary text-on-primary rounded-xl font-label-md text-label-md font-bold active:scale-[0.98] transition-all shadow-md text-white flex items-center justify-center gap-2"
+            className="w-full h-12 bg-[#00a884] hover:bg-[#009473] text-white rounded-full font-bold text-[15px] shadow-sm hover:shadow transition-all active:scale-[0.98] flex items-center justify-center gap-2"
           >
-            <span className="material-symbols-outlined text-[18px]">map</span>
+            <span className="material-symbols-outlined text-[20px]">map</span>
             Plan a Journey
           </button>
-        </main>
+
+        </div>
       </div>
     );
   }

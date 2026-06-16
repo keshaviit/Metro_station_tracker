@@ -87,23 +87,32 @@ export default function ProfilePage() {
   // Render Guest Page Placeholder
   if (isGuest) {
     return (
-      <div className="min-h-screen bg-background px-margin-mobile pt-safe pb-28 flex flex-col justify-center items-center relative w-full overflow-hidden">
-        <div className="absolute top-10 left-1/4 w-[300px] h-[300px] bg-primary/5 rounded-full blur-[80px] pointer-events-none" />
-
-        <div className="glass-panel p-lg border border-outline-variant/30 rounded-2xl max-w-sm mx-auto text-center space-y-md shadow-xl animate-scale-up bg-surface">
-          <div className="w-16 h-16 bg-primary/10 border border-primary/20 rounded-full flex items-center justify-center mx-auto text-primary text-2xl animate-pulse">
-            <span className="material-symbols-outlined text-[32px]">lock</span>
-          </div>
-          <div className="space-y-sm">
-            <h2 className="font-headline-lg-mobile text-headline-lg-mobile text-on-surface font-extrabold">Unlock Commuter HUD</h2>
-            <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
-              Create an account or sign in to track your personal commute analytics, save favorite stations, and record past journeys!
-            </p>
-          </div>
+      <div className="bg-gradient-to-b from-[#eefaf7] via-[#fcf8ff] to-[#f4f7fc] min-h-screen relative flex items-center justify-center p-6 pb-[96px]">
+        {/* White Card */}
+        <div className="bg-white border border-gray-100 rounded-[28px] p-8 w-full max-w-[360px] shadow-[0_8px_30px_rgba(0,0,0,0.03)] text-center flex flex-col items-center">
           
+          {/* Circular Lock Icon Badge */}
+          <div className="w-20 h-20 rounded-full bg-[#eefaf7] border border-gray-100 flex items-center justify-center text-[#00a884] mb-6 shadow-sm">
+            <svg className="w-10 h-10 text-[#00a884]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+          </div>
+
+          {/* Heading */}
+          <h2 className="text-[20px] font-extrabold text-gray-900 tracking-tight leading-tight mb-2">
+            Unlock Commuter HUD
+          </h2>
+
+          {/* Description */}
+          <p className="text-gray-500 text-sm leading-relaxed mb-6 max-w-[260px]">
+            Create an account or sign in to track your personal commute analytics, save favorite stations, and record past journeys!
+          </p>
+
+          {/* Button */}
           <button
             onClick={() => navigate('/auth')}
-            className="w-full h-12 bg-primary text-on-primary rounded-xl font-label-md text-label-md shadow-md hover:bg-primary-container active:scale-[0.98] transition-all flex items-center justify-center gap-xs font-bold"
+            className="w-full h-12 bg-[#006654] hover:bg-[#005243] text-white rounded-full font-bold text-[15px] shadow-sm hover:shadow transition-all active:scale-[0.98] flex items-center justify-center gap-2"
           >
             <span className="material-symbols-outlined text-[20px]">login</span>
             Sign In to Account

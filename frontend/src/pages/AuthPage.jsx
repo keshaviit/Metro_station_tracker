@@ -16,6 +16,7 @@ export default function AuthPage() {
 
   // Form states
   const [email, setEmail] = useState('');
+  const [showCredForm, setShowCredForm] = useState(false);
   
   // OTP Verification Screen
   const [showOtpScreen, setShowOtpScreen] = useState(false);
@@ -211,127 +212,82 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="bg-background font-body-lg text-on-background min-h-screen flex items-center justify-center p-md relative w-full overflow-y-auto">
-      {/* Decorative Background Elements for Modern UI Depth */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
-        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-primary/5 blur-[120px]"></div>
-        <div className="absolute -bottom-[10%] -right-[10%] w-[50%] h-[50%] rounded-full bg-tertiary/5 blur-[120px]"></div>
-      </div>
-
+    <div className="bg-gradient-to-b from-[#eefaf7] via-[#fcf8ff] to-[#f4f7fc] font-body-lg text-on-background min-h-screen flex items-center justify-center p-md relative w-full overflow-y-auto">
+      
       {/* Main Auth Canvas */}
-      <main className="w-full max-w-[440px] flex flex-col items-center py-8">
-        {/* Brand Identity Section */}
-        <header className="text-center mb-xl">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-xl mb-md soft-shadow inner-glow text-white">
-            <span className="material-symbols-outlined text-[32px]">subway</span>
-          </div>
-          <h1 className="font-display-lg text-display-lg text-primary tracking-tight mb-xs">
-            METROPULSE
-          </h1>
-          <p className="font-title-md text-title-md text-on-surface-variant/80 tracking-wide uppercase text-[12px]">
-            Delhi Transit Node Solution
-          </p>
-        </header>
-
+      <main className="w-full max-w-[420px] flex flex-col items-center py-8">
+        
         {/* Authentication Card */}
-        <div className="w-full glass-panel border border-outline-variant/30 rounded-xl p-xl soft-shadow">
-          {!showOtpScreen ? (
-            <div className="flex flex-col gap-lg">
-              {/* Google Sign-in */}
-              {!Capacitor.isNativePlatform() && (
-                <>
-                  <div className="flex flex-col items-center gap-sm">
-                    <div id="google-signin-target" className="flex justify-center w-full min-h-[44px]"></div>
-                  </div>
+        <div className="w-full bg-white border border-gray-100 rounded-[28px] p-8 shadow-[0_8px_30px_rgba(0,0,0,0.03)] relative">
+          
+          {/* Back Button for Credentials Form or OTP Screen */}
+          {(showCredForm || showOtpScreen) && (
+            <button 
+              onClick={() => {
+                if (showOtpScreen) {
+                  setShowOtpScreen(false);
+                  setShowCredForm(true);
+                } else {
+                  setShowCredForm(false);
+                }
+                setError('');
+                setSuccessMsg('');
+              }}
+              className="absolute left-6 top-6 w-9 h-9 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-50 active:scale-90 transition-transform"
+            >
+              <span className="material-symbols-outlined text-[20px] font-bold">arrow_back</span>
+            </button>
+          )}
 
-                  {/* Divider */}
-                  <div className="flex items-center gap-sm">
-                    <div className="h-[1px] flex-1 bg-outline-variant/30"></div>
-                    <span className="font-label-md text-label-md text-on-surface-variant/60">OR</span>
-                    <div className="h-[1px] flex-1 bg-outline-variant/30"></div>
-                  </div>
-                </>
-              )}
+          {/* Central Logo / Shield Section */}
+          <div className="flex flex-col items-center text-center mb-8">
+            <div className="w-20 h-20 rounded-full bg-[#00a884] flex items-center justify-center text-white mb-6 shadow-[0_4px_12px_rgba(0,168,132,0.15)]">
+              <svg className="w-10 h-10 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <path d="M12 11.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z" fill="currentColor" />
+                <path d="M12 12v3" />
+              </svg>
+            </div>
+            
+            <h2 className="text-[22px] font-extrabold text-gray-900 tracking-tight leading-tight">
+              {showOtpScreen 
+                ? "Verify your email" 
+                : showCredForm 
+                  ? "Sign in with Email" 
+                  : "Sign in to your account"}
+            </h2>
+            <p className="text-gray-500 text-sm mt-2 max-w-[280px]">
+              {showOtpScreen 
+                ? `Enter the 6-digit verification code sent to ${email}`
+                : showCredForm 
+                  ? "Enter your email to receive a secure sign-in passcode."
+                  : "Sign in to see your saved stations and trip history."}
+            </p>
+          </div>
 
-              {/* Email Form */}
-              <form onSubmit={handleSendOtp} className="flex flex-col gap-md">
-                <div className="flex flex-col gap-xs">
-                  <label className="font-label-md text-label-md text-on-surface-variant ml-xs" htmlFor="email">Email Address</label>
-                  <div className="relative group">
-                    <span className="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors text-[20px]">mail</span>
-                    <input 
-                      type="email"
-                      id="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="name@company.com"
-                      className="w-full h-12 pl-[48px] pr-md bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-body-sm text-body-sm text-on-surface"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {error && (
-                  <div className="text-xs text-red-600 bg-red-100 border border-red-200 rounded-lg px-3 py-2 text-center animate-pulse">
-                    {error}
-                  </div>
-                )}
-                {successMsg && (
-                  <div className="text-xs text-green-700 bg-green-100 border border-green-200 rounded-lg px-3 py-2 text-center">
-                    {successMsg}
-                  </div>
-                )}
-
-                <button 
-                  type="submit" 
-                  disabled={loading}
-                  className="w-full h-12 bg-primary text-on-primary rounded-lg font-label-md text-label-md inner-glow hover:bg-primary-container transition-all active:scale-[0.98] soft-shadow flex items-center justify-center"
-                >
-                  {loading ? (
-                    <span className="flex gap-1">
-                      <span className="loading-dot bg-white" />
-                      <span className="loading-dot bg-white" />
-                      <span className="loading-dot bg-white" />
-                    </span>
-                  ) : (
-                    "Continue with Email"
-                  )}
-                </button>
-              </form>
-
-              {/* Divider */}
-              <div className="flex items-center gap-sm">
-                <div className="h-[1px] flex-1 bg-outline-variant/30"></div>
-                <span className="font-label-md text-label-md text-on-surface-variant/60">DIRECT ACCESS</span>
-                <div className="h-[1px] flex-1 bg-outline-variant/30"></div>
-              </div>
-
-              {/* Guest Login */}
+          {/* Conditional form bodies */}
+          {!showCredForm && !showOtpScreen ? (
+            /* Mockup landing screen: Sign In & Continue as Guest */
+            <div className="flex flex-col gap-4">
+              <button 
+                onClick={() => setShowCredForm(true)}
+                className="w-full h-12 bg-[#006654] hover:bg-[#005243] text-white rounded-full font-bold text-[15px] shadow-sm hover:shadow transition-all active:scale-[0.98] flex items-center justify-center"
+              >
+                Sign In
+              </button>
+              
               <button 
                 onClick={handleGuestMode}
-                className="w-full h-12 flex items-center justify-center gap-sm bg-surface-container-lowest border border-outline-variant/50 rounded-lg font-label-md text-label-md text-on-surface hover:bg-surface-container-high transition-all active:scale-[0.98]"
+                className="w-full h-12 bg-white border border-gray-200 hover:border-gray-300 text-[#006654] rounded-full font-bold text-[15px] transition-all active:scale-[0.98] flex items-center justify-center"
               >
-                <span className="material-symbols-outlined text-[20px] text-primary">explore_nearby</span>
                 Continue as Guest
               </button>
-
-              <p className="font-body-sm text-body-sm text-center text-on-surface-variant/70 mt-sm">
-                By continuing, you agree to our <a className="text-primary hover:underline" href="#">Terms of Service</a> and <a class="text-primary hover:underline" href="#">Privacy Policy</a>.
-              </p>
             </div>
-          ) : (
+          ) : showOtpScreen ? (
             /* OTP Screen */
-            <form onSubmit={handleOtpSubmit} className="flex flex-col gap-lg">
-              <div className="text-center">
-                <span className="material-symbols-outlined text-primary text-[48px] animate-pulse">verified_user</span>
-                <h2 className="font-headline-lg-mobile text-headline-lg-mobile text-on-surface mt-xs font-extrabold">Email Verification</h2>
-                <p className="font-body-sm text-body-sm text-on-surface-variant/80 mt-sm">
-                  We've sent a 6-digit login code to <br /><span className="font-bold text-on-surface">{email}</span>.
-                </p>
-              </div>
-
+            <form onSubmit={handleOtpSubmit} className="flex flex-col gap-6">
               {/* OTP Digits inputs */}
-              <div className="flex justify-center gap-sm" onPaste={handleOtpPaste}>
+              <div className="flex justify-center gap-2" onPaste={handleOtpPaste}>
                 {otpDigits.map((digit, idx) => (
                   <input
                     key={idx}
@@ -341,19 +297,19 @@ export default function AuthPage() {
                     value={digit}
                     onChange={(e) => handleOtpChange(idx, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                    className="w-10 h-12 bg-surface-container-low border border-outline-variant/50 rounded-lg text-center text-lg font-black text-on-surface focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-mono"
+                    className="w-11 h-12 bg-gray-50 border border-gray-200 focus:border-[#00a884] focus:ring-2 focus:ring-[#00a884]/20 rounded-xl text-center text-[18px] font-bold text-gray-800 outline-none transition-all font-mono"
                     required
                   />
                 ))}
               </div>
 
               {error && (
-                <div className="text-xs text-red-600 bg-red-100 border border-red-200 rounded-lg px-3 py-2 text-center animate-pulse">
+                <div className="text-[12px] text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2.5 text-center font-medium">
                   {error}
                 </div>
               )}
               {successMsg && (
-                <div className="text-xs text-green-700 bg-green-100 border border-green-200 rounded-lg px-3 py-2 text-center">
+                <div className="text-[12px] text-green-700 bg-green-50 border border-green-100 rounded-xl px-3 py-2.5 text-center font-medium">
                   {successMsg}
                 </div>
               )}
@@ -361,10 +317,10 @@ export default function AuthPage() {
               <button 
                 type="submit" 
                 disabled={loading}
-                className="w-full h-12 bg-primary text-on-primary rounded-lg font-label-md text-label-md inner-glow hover:bg-primary-container transition-all active:scale-[0.98] soft-shadow flex items-center justify-center"
+                className="w-full h-12 bg-[#006654] hover:bg-[#005243] text-white rounded-full font-bold text-[15px] shadow-sm transition-all active:scale-[0.98] flex items-center justify-center"
               >
                 {loading ? (
-                  <span className="flex gap-1">
+                  <span className="flex gap-1.5">
                     <span className="loading-dot bg-white" />
                     <span className="loading-dot bg-white" />
                     <span className="loading-dot bg-white" />
@@ -374,59 +330,105 @@ export default function AuthPage() {
                 )}
               </button>
 
-              <div className="flex flex-col items-center gap-sm pt-sm text-center">
+              <div className="flex flex-col items-center gap-2 pt-2 text-center">
                 {canResend ? (
                   <button
                     type="button"
                     onClick={handleResendOtp}
                     disabled={loading}
-                    className="font-label-md text-label-md text-primary hover:underline flex items-center gap-xs"
+                    className="text-xs font-bold text-[#006654] hover:underline flex items-center gap-1"
                   >
-                    <span className="material-symbols-outlined text-[16px]">refresh</span>
-                    Resend verification code
+                    <span className="material-symbols-outlined text-[15px]">refresh</span>
+                    Resend code
                   </button>
                 ) : (
-                  <span className="font-body-sm text-body-sm text-on-surface-variant/80">
-                    Resend passcode in <span className="font-bold text-primary">{resendTimer}s</span>
+                  <span className="text-xs text-gray-400">
+                    Resend passcode in <span className="font-bold text-[#006654]">{resendTimer}s</span>
                   </span>
                 )}
 
                 <button
                   type="button"
-                  onClick={() => { setShowOtpScreen(false); setError(''); setSuccessMsg(''); }}
-                  className="font-label-md text-label-md text-on-surface-variant hover:text-on-surface uppercase tracking-wider mt-sm"
+                  onClick={() => { setShowOtpScreen(false); setShowCredForm(true); setError(''); setSuccessMsg(''); }}
+                  className="text-xs font-bold text-gray-400 hover:text-gray-600 uppercase tracking-wider mt-2"
                 >
                   Change Email Address
                 </button>
               </div>
             </form>
+          ) : (
+            /* Email Form */
+            <form onSubmit={handleSendOtp} className="flex flex-col gap-4">
+              {/* Google Sign-in */}
+              {!Capacitor.isNativePlatform() && (
+                <>
+                  <div className="flex flex-col items-center gap-sm">
+                    <div id="google-signin-target" className="flex justify-center w-full min-h-[44px]"></div>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="flex items-center gap-sm my-1">
+                    <div className="h-[1px] flex-1 bg-gray-100"></div>
+                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">or</span>
+                    <div className="h-[1px] flex-1 bg-gray-100"></div>
+                  </div>
+                </>
+              )}
+
+              <div className="flex flex-col gap-1.5 text-left">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1" htmlFor="email">Email Address</label>
+                <div className="relative group">
+                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#00a884] transition-colors text-[20px]">mail</span>
+                  <input 
+                    type="email"
+                    id="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@example.com"
+                    className="w-full h-12 pl-12 pr-4 bg-gray-50 border border-gray-200 focus:border-[#00a884] focus:ring-2 focus:ring-[#00a884]/20 rounded-xl outline-none transition-all text-[15px] text-gray-800"
+                    required
+                  />
+                </div>
+              </div>
+
+              {error && (
+                <div className="text-[12px] text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2.5 text-center font-medium">
+                  {error}
+                </div>
+              )}
+              {successMsg && (
+                <div className="text-[12px] text-green-700 bg-green-50 border border-green-100 rounded-xl px-3 py-2.5 text-center font-medium">
+                  {successMsg}
+                </div>
+              )}
+
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="w-full h-12 bg-[#006654] hover:bg-[#005243] text-white rounded-full font-bold text-[15px] shadow-sm transition-all active:scale-[0.98] flex items-center justify-center"
+              >
+                {loading ? (
+                  <span className="flex gap-1.5">
+                    <span className="loading-dot bg-white" />
+                    <span className="loading-dot bg-white" />
+                    <span className="loading-dot bg-white" />
+                  </span>
+                ) : (
+                  "Continue with Email"
+                )}
+              </button>
+            </form>
           )}
-        </div>
 
-        {/* Secondary Information / Footer */}
-        <footer className="mt-xl text-center">
-          <div className="flex items-center justify-center gap-md">
-            <div className="flex items-center gap-xs">
-              <span className="material-symbols-outlined text-[16px] text-on-surface-variant/40">verified_user</span>
-              <span className="font-label-md text-label-md text-on-surface-variant/60">Secure SSL Transit</span>
-            </div>
-            <div className="w-1 h-1 rounded-full bg-outline-variant/50"></div>
-            <div className="flex items-center gap-xs">
-              <span className="material-symbols-outlined text-[16px] text-on-surface-variant/40">public</span>
-              <span className="font-label-md text-label-md text-on-surface-variant/60">v4.2.0-stable</span>
-            </div>
+          {/* Card Footer Links */}
+          <div className="flex items-center justify-center gap-4 mt-8 pt-6 border-t border-gray-100 text-xs font-bold text-gray-400">
+            <a href="#" className="hover:text-gray-600 transition-colors">Privacy Policy</a>
+            <span className="text-gray-200">|</span>
+            <a href="#" className="hover:text-gray-600 transition-colors">Help Center</a>
           </div>
-        </footer>
-      </main>
 
-      {/* Contextual Visual - Background Card Decor */}
-      <div className="hidden lg:block fixed right-[10%] top-1/2 -translate-y-1/2 w-[380px] h-[520px] glass-panel border border-outline-variant/20 rounded-[32px] overflow-hidden soft-shadow opacity-40 rotate-3 translate-x-12 -z-20">
-        <img 
-          alt="Futuristic transit hub" 
-          className="w-full h-full object-cover grayscale brightness-110" 
-          src="https://lh3.googleusercontent.com/aida/AP1WRLsjPoEkej0dTcKU8_WoFejAO3wJac9uZXzH0-pwXZMzZ5Vy3GfDfSO-BdRrkfypnwf8Jp4Ty-WaMPmk45G5KJzEOtdZNGBLhn9046kuvR2m94KbDjjYh4D_2ezJQo9iWSdShQjbDY51BXAu74I1iZXo7_reEHFpuKm325pd-WL6YOBC6Bd0TKNlllWL1BqLD01ngKB7YA9T_0jlfxWjqtqT5ywQeH2mC_1uvhi1l-oLvZauiUQb8RdAsIA"
-        />
-      </div>
+        </div>
+      </main>
     </div>
   );
 }
