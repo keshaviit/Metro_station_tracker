@@ -206,17 +206,6 @@ export default function HomePage() {
             alt="MetroPulse - Your Metro, Made Easy" 
             className="w-full h-full object-cover scale-[1.15] origin-center translate-x-3" 
           />
-        
-        {/* Book Tickets Float Button inside Banner */}
-        <div className="absolute bottom-4 right-4 z-10">
-          <button
-            onClick={openWhatsappTickets}
-            className="px-5 py-2.5 bg-white text-[#4CAF50] font-extrabold text-[13px] rounded-full flex items-center gap-2 shadow-lg hover:scale-105 active:scale-95 transition-all uppercase tracking-wide"
-          >
-            <span className="material-symbols-outlined text-[18px] font-bold">qr_code_2</span>
-            Book Tickets
-          </button>
-        </div>
       </div>
 
       {/* Greeting Section */}
@@ -251,8 +240,11 @@ export default function HomePage() {
 
             {/* GPS Location button */}
             <button 
-              onClick={detectNearest} 
-              className="text-[#4CAF50] flex-shrink-0 ml-2 active:scale-90 transition-all flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-50"
+              onClick={(e) => {
+                e.stopPropagation();
+                detectNearest();
+              }} 
+              className="text-[#4CAF50] flex-shrink-0 ml-auto active:scale-90 transition-all flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-50"
               title="Detect nearest station"
             >
               {nearestLoading ? (

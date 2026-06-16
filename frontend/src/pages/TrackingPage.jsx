@@ -632,7 +632,7 @@ export default function TrackingPage() {
       )}
       
       {/* Navigation Header */}
-      <nav className="fixed top-0 w-full z-[8000] bg-surface/80 backdrop-blur-md text-primary font-title-md text-title-md border-b border-outline-variant/30 shadow-sm flex items-center justify-between px-margin-mobile h-16 w-full mt-safe">
+      <nav className="sticky top-0 z-[8000] bg-surface/80 backdrop-blur-md text-primary font-title-md text-title-md border-b border-outline-variant/30 shadow-sm flex items-center justify-between px-margin-mobile h-16 mt-safe">
         <div className="flex items-center gap-sm">
           <button onClick={handleEndTrip} className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-highest/50 transition-colors active:scale-95 duration-200">
             <span className="material-symbols-outlined text-primary">arrow_back</span>
@@ -727,7 +727,7 @@ export default function TrackingPage() {
       )}
 
       {/* Main Scrollable Content */}
-      <main className="flex-1 mt-16 pb-28 px-margin-mobile max-w-2xl mx-auto space-y-lg pt-lg overflow-y-auto">
+      <main className="flex-1 pb-28 px-margin-mobile max-w-2xl mx-auto space-y-lg pt-lg overflow-y-auto">
 
         {/* Bento Progress Card */}
         <section className="relative h-56 w-full rounded-xl overflow-hidden shadow-sm border border-outline-variant/30">
@@ -871,35 +871,6 @@ export default function TrackingPage() {
                 </span>
               </div>
             </div>
-
-            {presetSaved ? (
-              <div className="bg-emerald-100 text-emerald-700 text-xs font-bold rounded-xl py-3 text-center border border-emerald-200">
-                ✓ Saved as {presetSaved === 'home' ? 'Home Preset' : 'Work Preset'}
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-sm w-full">
-                <button
-                  onClick={() => {
-                    localStorage.setItem('smart_metro_home', route.path[0]);
-                    localStorage.setItem('smart_metro_office', destinationName);
-                    setPresetSaved('work');
-                  }}
-                  className="bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-1 transition-all"
-                >
-                  💼 Set Work Preset
-                </button>
-                <button
-                  onClick={() => {
-                    localStorage.setItem('smart_metro_home', destinationName);
-                    localStorage.setItem('smart_metro_office', route.path[0]);
-                    setPresetSaved('home');
-                  }}
-                  className="bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-1 transition-all"
-                >
-                  🏠 Set Home Preset
-                </button>
-              </div>
-            )}
 
             <button
               id="end-trip-btn"
