@@ -212,7 +212,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="bg-gradient-to-b from-[#eefaf7] via-[#fcf8ff] to-[#f4f7fc] font-body-lg text-on-background min-h-screen flex items-center justify-center p-md relative w-full overflow-y-auto">
+    <div className="bg-gradient-to-b from-[#eefaf5] via-[#fcf8ff] to-[#f4f7fc] font-body-lg text-on-background min-h-screen flex items-center justify-center p-md relative w-full overflow-y-auto">
       
       {/* Main Auth Canvas */}
       <main className="w-full max-w-[420px] flex flex-col items-center py-8">
@@ -241,7 +241,7 @@ export default function AuthPage() {
 
           {/* Central Logo / Shield Section */}
           <div className="flex flex-col items-center text-center mb-8">
-            <div className="w-20 h-20 rounded-full bg-[#00a884] flex items-center justify-center text-white mb-6 shadow-[0_4px_12px_rgba(0,168,132,0.15)]">
+            <div className="w-20 h-20 rounded-full bg-[#00ab82] flex items-center justify-center text-white mb-6 shadow-[0_4px_12px_rgba(0,171,130,0.15)]">
               <svg className="w-10 h-10 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                 <path d="M12 11.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z" fill="currentColor" />
@@ -271,14 +271,14 @@ export default function AuthPage() {
             <div className="flex flex-col gap-4">
               <button 
                 onClick={() => setShowCredForm(true)}
-                className="w-full h-12 bg-[#006654] hover:bg-[#005243] text-white rounded-full font-bold text-[15px] shadow-sm hover:shadow transition-all active:scale-[0.98] flex items-center justify-center"
+                className="w-full h-12 bg-[#00664e] hover:bg-[#00523f] text-white rounded-full font-bold text-[15px] shadow-sm hover:shadow transition-all active:scale-[0.98] flex items-center justify-center"
               >
                 Sign In
               </button>
               
               <button 
                 onClick={handleGuestMode}
-                className="w-full h-12 bg-white border border-gray-200 hover:border-gray-300 text-[#006654] rounded-full font-bold text-[15px] transition-all active:scale-[0.98] flex items-center justify-center"
+                className="w-full h-12 bg-white border border-gray-200 hover:border-gray-300 text-[#00664e] rounded-full font-bold text-[15px] transition-all active:scale-[0.98] flex items-center justify-center"
               >
                 Continue as Guest
               </button>
@@ -297,7 +297,7 @@ export default function AuthPage() {
                     value={digit}
                     onChange={(e) => handleOtpChange(idx, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                    className="w-11 h-12 bg-gray-50 border border-gray-200 focus:border-[#00a884] focus:ring-2 focus:ring-[#00a884]/20 rounded-xl text-center text-[18px] font-bold text-gray-800 outline-none transition-all font-mono"
+                    className="w-11 h-12 bg-gray-50 border border-gray-200 focus:border-[#00ab82] focus:ring-2 focus:ring-[#00ab82]/20 rounded-xl text-center text-[18px] font-bold text-gray-800 outline-none transition-all font-mono"
                     required
                   />
                 ))}
@@ -317,7 +317,7 @@ export default function AuthPage() {
               <button 
                 type="submit" 
                 disabled={loading}
-                className="w-full h-12 bg-[#006654] hover:bg-[#005243] text-white rounded-full font-bold text-[15px] shadow-sm transition-all active:scale-[0.98] flex items-center justify-center"
+                className="w-full h-12 bg-[#00664e] hover:bg-[#00523f] text-white rounded-full font-bold text-[15px] shadow-sm transition-all active:scale-[0.98] flex items-center justify-center"
               >
                 {loading ? (
                   <span className="flex gap-1.5">
@@ -336,14 +336,14 @@ export default function AuthPage() {
                     type="button"
                     onClick={handleResendOtp}
                     disabled={loading}
-                    className="text-xs font-bold text-[#006654] hover:underline flex items-center gap-1"
+                    className="text-xs font-bold text-[#00664e] hover:underline flex items-center gap-1"
                   >
                     <span className="material-symbols-outlined text-[15px]">refresh</span>
                     Resend code
                   </button>
                 ) : (
                   <span className="text-xs text-gray-400">
-                    Resend passcode in <span className="font-bold text-[#006654]">{resendTimer}s</span>
+                    Resend passcode in <span className="font-bold text-[#00664e]">{resendTimer}s</span>
                   </span>
                 )}
 
@@ -378,14 +378,14 @@ export default function AuthPage() {
               <div className="flex flex-col gap-1.5 text-left">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1" htmlFor="email">Email Address</label>
                 <div className="relative group">
-                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#00a884] transition-colors text-[20px]">mail</span>
+                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#00ab82] transition-colors text-[20px]">mail</span>
                   <input 
                     type="email"
                     id="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@example.com"
-                    className="w-full h-12 pl-12 pr-4 bg-gray-50 border border-gray-200 focus:border-[#00a884] focus:ring-2 focus:ring-[#00a884]/20 rounded-xl outline-none transition-all text-[15px] text-gray-800"
+                    className="w-full h-12 pl-12 pr-4 bg-gray-50 border border-gray-200 focus:border-[#00ab82] focus:ring-2 focus:ring-[#00ab82]/20 rounded-xl outline-none transition-all text-[15px] text-gray-800"
                     required
                   />
                 </div>
@@ -405,7 +405,7 @@ export default function AuthPage() {
               <button 
                 type="submit" 
                 disabled={loading}
-                className="w-full h-12 bg-[#006654] hover:bg-[#005243] text-white rounded-full font-bold text-[15px] shadow-sm transition-all active:scale-[0.98] flex items-center justify-center"
+                className="w-full h-12 bg-[#00664e] hover:bg-[#00523f] text-white rounded-full font-bold text-[15px] shadow-sm transition-all active:scale-[0.98] flex items-center justify-center"
               >
                 {loading ? (
                   <span className="flex gap-1.5">

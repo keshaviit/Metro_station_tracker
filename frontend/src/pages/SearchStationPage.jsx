@@ -73,7 +73,7 @@ export default function SearchStationPage() {
   };
 
   return (
-    <div className="bg-gradient-to-b from-[#eefaf7] via-[#fcf8ff] to-[#f4f7fc] min-h-screen relative flex flex-col pt-safe">
+    <div className="bg-gradient-to-b from-[#eefaf5] via-[#fcf8ff] to-[#f4f7fc] min-h-screen relative flex flex-col pt-safe">
       
       {/* Header Search Bar Area */}
       <header className="px-5 py-4 flex-shrink-0">
@@ -135,7 +135,7 @@ export default function SearchStationPage() {
         {/* Other Stations Header */}
         {othersToDisplay.length > 0 && (
           <div className="mt-4 mb-2">
-            <span className="text-[11px] font-bold text-[#00a884] uppercase tracking-wider ml-1">All Stations</span>
+            <span className="text-[11px] font-bold text-[#00ab82] uppercase tracking-wider ml-1">All Stations</span>
           </div>
         )}
 
@@ -146,7 +146,7 @@ export default function SearchStationPage() {
             onClick={() => handleSelect(stationName)}
             className="flex items-center py-4 border-b border-gray-50 cursor-pointer active:bg-white/40 transition-colors rounded-xl px-2"
           >
-            <span className="material-symbols-outlined text-[#00a884] mr-4 text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+            <span className="material-symbols-outlined text-[#00ab82] mr-4 text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>
               location_on
             </span>
             <span className="text-gray-800 text-[15px] font-medium">{stationName}</span>

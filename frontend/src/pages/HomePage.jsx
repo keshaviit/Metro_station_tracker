@@ -192,7 +192,7 @@ export default function HomePage() {
         <div className="absolute bottom-4 right-4 z-10">
           <button
             onClick={openWhatsappTickets}
-            className="px-5 py-2.5 bg-white text-[#00a884] font-extrabold text-[13px] rounded-full flex items-center gap-2 shadow-lg hover:scale-105 active:scale-95 transition-all uppercase tracking-wide"
+            className="px-5 py-2.5 bg-white text-[#00ab82] font-extrabold text-[13px] rounded-full flex items-center gap-2 shadow-lg hover:scale-105 active:scale-95 transition-all uppercase tracking-wide"
           >
             <span className="material-symbols-outlined text-[18px] font-bold">qr_code_2</span>
             Book Tickets
@@ -201,7 +201,7 @@ export default function HomePage() {
       </div>
 
       {/* Greeting Section */}
-      <h2 className="text-[20px] text-[#00a884] font-semibold mb-3 ml-1">
+      <h2 className="text-[20px] text-[#00ab82] font-semibold mb-3 ml-1">
         Hi, where are you going today?
       </h2>
 
@@ -215,14 +215,14 @@ export default function HomePage() {
         >
           {/* Label Row */}
           <div className="pl-[30px]">
-            <span className="text-[11px] font-bold text-[#00a884] uppercase tracking-wider block leading-none">From</span>
+            <span className="text-[11px] font-bold text-[#00ab82] uppercase tracking-wider block leading-none">From</span>
           </div>
           
           {/* Input Row */}
           <div className="flex items-center w-full gap-3 mt-1 h-8 pr-12">
             {/* Green dot icon */}
-            <div className="w-[18px] h-[18px] rounded-full border-[3px] border-[#00a884] flex-shrink-0 relative">
-              <div className="absolute inset-0 m-auto w-1.5 h-1.5 bg-[#00a884] rounded-full"></div>
+            <div className="w-[18px] h-[18px] rounded-full border-[3px] border-[#00ab82] flex-shrink-0 relative">
+              <div className="absolute inset-0 m-auto w-1.5 h-1.5 bg-[#00ab82] rounded-full"></div>
             </div>
             
             {/* Input Display */}
@@ -233,11 +233,11 @@ export default function HomePage() {
             {/* GPS Location button */}
             <button 
               onClick={detectNearest} 
-              className="text-[#00a884] flex-shrink-0 ml-2 active:scale-90 transition-all flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-50"
+              className="text-[#00ab82] flex-shrink-0 ml-2 active:scale-90 transition-all flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-50"
               title="Detect nearest station"
             >
               {nearestLoading ? (
-                <div className="w-5 h-5 border-2 border-[#00a884] border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-5 h-5 border-2 border-[#00ab82] border-t-transparent rounded-full animate-spin"></div>
               ) : (
                 <span className="material-symbols-outlined text-[20px] flex items-center justify-center">my_location</span>
               )}
@@ -272,7 +272,7 @@ export default function HomePage() {
         {/* Swap Button on divider */}
         <div 
           onClick={swap}
-          className="absolute right-6 top-1/2 -translate-y-1/2 w-[34px] h-[34px] flex items-center justify-center cursor-pointer text-[#00a884] bg-white z-10 shadow-[0_2px_8px_rgba(0,0,0,0.12)] border border-gray-100 rounded-full active:scale-90 transition-transform"
+          className="absolute right-6 top-1/2 -translate-y-1/2 w-[34px] h-[34px] flex items-center justify-center cursor-pointer text-[#00ab82] bg-white z-10 shadow-[0_2px_8px_rgba(0,0,0,0.12)] border border-gray-100 rounded-full active:scale-90 transition-transform"
         >
           <span className="material-symbols-outlined text-[18px] transform rotate-90 font-bold">swap_horiz</span>
         </div>
@@ -286,14 +286,14 @@ export default function HomePage() {
 
       {loading && (
         <div className="flex justify-center py-2">
-          <div className="w-5 h-5 border-2 border-[#00a884] border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-5 h-5 border-2 border-[#00ab82] border-t-transparent rounded-full animate-spin"></div>
         </div>
       )}
       </div>
 
       {/* Decorative center logo to keep home page elegant */}
       <div className="flex-1 flex flex-col items-center justify-center px-8 opacity-[0.25] select-none pointer-events-none mt-4 pb-28">
-        <span className="material-symbols-outlined text-[80px] text-[#00a884]">subway</span>
+        <span className="material-symbols-outlined text-[80px] text-[#00ab82]">subway</span>
         <span className="text-sm font-bold text-gray-400 mt-2 tracking-wider uppercase">Delhi Transit System</span>
       </div>
 

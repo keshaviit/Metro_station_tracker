@@ -27,7 +27,7 @@ export default function BottomNav() {
           to="/"
           className={({ isActive }) => `flex items-center justify-center transition-all duration-300 ${
             isActive 
-              ? 'bg-gray-100 dark:bg-white/10 px-6 py-2.5 rounded-full text-[#006654] dark:text-[#00a884] font-bold' 
+              ? 'bg-gray-100 dark:bg-white/10 px-6 py-2.5 rounded-full text-[#00664e] dark:text-[#00ab82] font-bold' 
               : 'px-6 py-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
           }`}
         >
@@ -43,7 +43,7 @@ export default function BottomNav() {
           to="/track"
           className={({ isActive }) => `relative flex items-center justify-center transition-all duration-300 ${
             isActive 
-              ? 'bg-gray-100 dark:bg-white/10 px-6 py-2.5 rounded-full text-[#006654] dark:text-[#00a884] font-bold' 
+              ? 'bg-gray-100 dark:bg-white/10 px-6 py-2.5 rounded-full text-[#00664e] dark:text-[#00ab82] font-bold' 
               : 'px-6 py-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
           }`}
         >
@@ -64,7 +64,7 @@ export default function BottomNav() {
           to="/profile"
           className={({ isActive }) => `flex items-center justify-center transition-all duration-300 ${
             isActive 
-              ? 'bg-gray-100 dark:bg-white/10 px-6 py-2.5 rounded-full text-[#006654] dark:text-[#00a884] font-bold' 
+              ? 'bg-gray-100 dark:bg-white/10 px-6 py-2.5 rounded-full text-[#00664e] dark:text-[#00ab82] font-bold' 
               : 'px-6 py-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
           }`}
         >
