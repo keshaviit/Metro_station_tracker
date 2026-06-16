@@ -572,6 +572,26 @@ export default function TrackingPage() {
   // Station data for timeline
   const currentStopName = prediction?.currentStation || route.path[0];
 
+  // 5-station slice logic
+  const getMiniMapStations = () => {
+    if (!route.path) return [];
+    let startIdx = Math.max(0, currentIndex - 2);
+    let endIdx = Math.min(route.path.length, startIdx + 5);
+    
+    // Adjust to always show 5 stations if the route has at least 5
+    if (endIdx - startIdx < 5 && route.path.length >= 5) {
+      startIdx = Math.max(0, endIdx - 5);
+    }
+    
+    return route.path.slice(startIdx, endIdx).map((name, i) => ({
+      name,
+      originalIndex: startIdx + i,
+      status: (startIdx + i) < currentIndex ? 'past' : (startIdx + i) === currentIndex ? 'present' : 'upcoming',
+      lineColor: route.stationDetails?.[startIdx + i]?.line
+    }));
+  };
+  const miniMapStations = getMiniMapStations();
+
   // Find the next upcoming interchange station
   let upcomingInterchange = null;
   if (route?.interchanges && route?.stationDetails) {
@@ -729,39 +749,105 @@ export default function TrackingPage() {
       {/* Main Scrollable Content */}
       <main className="flex-1 pb-28 px-margin-mobile max-w-2xl mx-auto space-y-lg pt-lg overflow-y-auto">
 
-        {/* Bento Progress Card */}
-        <section className="relative h-56 w-full rounded-xl overflow-hidden shadow-sm border border-outline-variant/30">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-surface-container-low to-surface-container">
-            <div className="absolute inset-0 flex items-center justify-center opacity-[0.04]">
-              <span className="material-symbols-outlined text-[200px] text-primary">subway</span>
-            </div>
+        {/* Live Mini-Map Card */}
+        <section className="relative w-full rounded-2xl overflow-hidden shadow-sm border border-outline-variant/30 bg-surface-container-lowest p-md py-6">
+          <div className="flex justify-between items-center mb-6">
+            <span className="font-title-md text-title-md text-on-surface font-extrabold flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse border border-emerald-200"></span>
+              Live Track
+            </span>
+            <span className="font-label-md text-[11px] text-primary bg-primary/10 px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">
+              {prediction?.stopsRemaining != null ? `${prediction.stopsRemaining} stops left` : 'Calculating...'}
+            </span>
           </div>
-          <div className="absolute top-4 right-4 glass-panel px-md py-sm rounded-lg border border-outline-variant/30 flex items-center gap-sm">
-            <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1", animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}>location_on</span>
-            <span className="font-title-md text-title-md text-primary font-bold">Live</span>
-          </div>
-          <div className="absolute top-4 left-4 flex flex-col gap-1">
-            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">{route.path[0]}</span>
-            <span className="text-[10px] text-on-surface-variant">→</span>
-            <span className="text-[10px] font-bold text-primary uppercase tracking-wider">{destinationName}</span>
-          </div>
-          <div className="absolute bottom-4 left-4 right-4 glass-panel p-md rounded-lg border border-outline-variant/30">
-            <div className="flex justify-between items-center mb-xs">
-              <span className="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Journey Progress</span>
-              <span className="font-title-md text-title-md text-primary font-bold">{progressPercent}%</span>
+
+          <div className="flex items-center w-full mt-2">
+            {/* Left Edge: Start Station & Ellipsis (Only if hidden) */}
+            {miniMapStations[0]?.originalIndex > 0 && (
+              <div className="flex items-center gap-1.5 mr-1 opacity-60">
+                <div className="flex flex-col items-center">
+                  <div className="w-1.5 h-1.5 rounded-full bg-outline-variant"></div>
+                  <span className="text-[7px] font-bold text-on-surface-variant w-10 text-center truncate mt-1">
+                    {route.path[0].split(' ').slice(0,2).join(' ')}
+                  </span>
+                </div>
+                <span className="text-outline-variant font-black tracking-widest text-xs">...</span>
+              </div>
+            )}
+
+            {/* Middle: The 5-Station Live Track */}
+            <div className="relative flex-1 h-32 flex items-start pt-8 justify-between px-2">
+              {/* The Background Track Line (Thick Gray to connect dots) */}
+              <div className="absolute left-4 right-4 h-[6px] bg-[#E2E8F0] rounded-full top-8 -translate-y-1/2 z-0">
+                {/* The Active Filled Track Line */}
+                <div 
+                  className="absolute left-0 h-full rounded-full transition-all duration-1000 ease-in-out" 
+                  style={{ 
+                    width: `${Math.min(100, Math.max(0, (miniMapStations.findIndex(s => s.status === 'present') / Math.max(1, miniMapStations.length - 1)) * 100))}%`,
+                    backgroundColor: miniMapStations.find(s => s.status === 'present')?.lineColor ? (LINE_COLORS[miniMapStations.find(s => s.status === 'present').lineColor] || 'var(--primary)') : 'var(--primary)'
+                  }}
+                ></div>
+                
+                {/* Animated Train Icon with realistic driving glide */}
+                <div 
+                  className="absolute top-1/2 z-20 transition-all duration-1000 ease-in-out"
+                  style={{ 
+                    left: `${Math.min(100, Math.max(0, (miniMapStations.findIndex(s => s.status === 'present') / Math.max(1, miniMapStations.length - 1)) * 100))}%`,
+                    transform: 'translate(-50%, -50%)'
+                  }}
+                >
+                  <div 
+                    className="w-8 h-4 bg-[#F8FAFC] rounded-[3px] border-2 border-[#94A3B8] flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.15)] relative"
+                  >
+                    {/* Red cross pattern on train roof */}
+                    <div className="relative w-2 h-2 flex items-center justify-center">
+                      <div className="absolute w-2 h-[2px] bg-red-500 rounded-sm"></div>
+                      <div className="absolute h-2 w-[2px] bg-red-500 rounded-sm"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Station Nodes */}
+              {miniMapStations.map((station, idx) => {
+                const isActive = station.status === 'present';
+                const isPast = station.status === 'past';
+                const isUpcoming = station.status === 'upcoming';
+                // Always ensure active line color takes precedence for consistency, or use node's native line color
+                const nodeColor = station.lineColor ? (LINE_COLORS[station.lineColor] || 'var(--primary)') : 'var(--primary)';
+
+                return (
+                  <div key={`${station.name}-${idx}`} className="flex flex-col items-center relative z-10 w-4">
+                    {/* The dot */}
+                    <div 
+                      className={`w-3.5 h-3.5 rounded-full border-2 transition-all duration-500 absolute -top-[7px] left-1/2 -translate-x-1/2 ${isActive ? 'scale-150 shadow-[0_0_12px_rgba(0,0,0,0.2)] bg-white' : isPast ? 'bg-white' : 'bg-surface-container-lowest border-outline-variant/60'}`}
+                      style={{ borderColor: isUpcoming ? undefined : nodeColor }}
+                    >
+                      {isActive && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: nodeColor }}></div>}
+                    </div>
+                    {/* Station Name text - Rotated 45 degrees to avoid overlap */}
+                    <span 
+                      className={`absolute top-4 left-1/2 origin-top-left rotate-[40deg] w-24 text-left leading-tight tracking-wide ${isActive ? 'font-bold text-[10px] text-on-surface' : 'text-[9px] text-on-surface-variant font-medium'}`}
+                    >
+                      {station.name.split(' ').slice(0, 2).join(' ')}{station.name.split(' ').length > 2 ? '...' : ''}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-            <div className="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
-              <div
-                className="h-full bg-primary rounded-full transition-all duration-1000 ease-out"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-            <div className="flex justify-between mt-1">
-              <span className="text-[9px] text-on-surface-variant">{currentIndex} of {totalStations} stations</span>
-              <span className="text-[9px] text-on-surface-variant font-bold">
-                {prediction?.stopsRemaining != null ? `${prediction.stopsRemaining} stops left` : 'Calculating...'}
-              </span>
-            </div>
+
+            {/* Right Edge: Ellipsis & End Station (Only if hidden) */}
+            {miniMapStations[miniMapStations.length - 1]?.originalIndex < route.path.length - 1 && (
+              <div className="flex items-center gap-1.5 ml-1 opacity-60">
+                <span className="text-outline-variant font-black tracking-widest text-xs">...</span>
+                <div className="flex flex-col items-center">
+                  <div className="w-1.5 h-1.5 rounded-full bg-outline-variant"></div>
+                  <span className="text-[7px] font-bold text-on-surface-variant w-10 text-center truncate mt-1">
+                    {destinationName.split(' ').slice(0,2).join(' ')}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </section>
 
@@ -923,37 +1009,55 @@ export default function TrackingPage() {
                   const nextLineColor = route.stationDetails?.[idx + 1]?.line;
 
                   return (
-                    <div key={`${stationName}-${idx}`} className={`flex items-start gap-md relative z-10 ${isPast && !isCurrent ? 'opacity-50' : ''}`}>
-                      {/* Station Dot & Dynamic Color-Coded Segments */}
-                      <div className="flex flex-col items-center flex-shrink-0 relative">
-                        {isCurrent ? (
-                          <div className="w-6 h-6 rounded-full bg-white border-4 border-primary shadow-sm z-10 flex items-center justify-center">
-                            <div className="w-2 h-2 rounded-full bg-primary" style={{ animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}></div>
-                          </div>
-                        ) : isPast || isVisited ? (
-                          <div className="w-6 h-6 rounded-full bg-primary border-4 border-white shadow-sm z-10"></div>
-                        ) : (
-                          <div className="w-6 h-6 rounded-full bg-white border-4 border-outline-variant shadow-sm z-10"></div>
-                        )}
-                        {!isLast && (
+                    <div key={`${stationName}-${idx}`} className={`flex items-start gap-md relative z-10 ${isPast && !isCurrent ? 'opacity-50' : ''} pb-6`}>
+                      
+                      {/* Vertical Track Lines (positioned absolute relative to the full row) */}
+                      {!isLast && (
+                        <>
+                          {/* Faint Background Track Line */}
                           <div 
-                            className="w-1 absolute top-6 bottom-[-16px] left-1/2 -translate-x-1/2" 
+                            className="w-1 absolute left-[18px] top-[40px] bottom-[-10px] bg-outline-variant opacity-50 rounded-[2px] z-0" 
+                          />
+                          
+                          {/* Animated Active Track Line filling downwards */}
+                          <div 
+                            className="w-1 absolute left-[18px] top-[40px] bottom-[-10px] transition-transform duration-[1500ms] ease-out origin-top z-0" 
                             style={{ 
-                              backgroundColor: LINE_COLORS[lineColor] || 'var(--outline-variant)',
-                              opacity: isPast ? 0.35 : 1,
+                              backgroundColor: LINE_COLORS[lineColor] || 'var(--primary)',
+                              transform: isPast ? 'scaleY(1)' : 'scaleY(0)',
                               borderRadius: '2px'
                             }} 
                           />
+                        </>
+                      )}
+
+                      {/* Station Dot Container */}
+                      <div className="w-10 flex flex-col items-center justify-start flex-shrink-0 relative z-10">
+                        {isCurrent ? (
+                          <div 
+                            className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center animate-radar-ripple animate-station-pop relative"
+                            style={{ 
+                              boxShadow: `0 0 0 0 ${LINE_COLORS[lineColor] || 'var(--primary)'}40, 0 0 0 0 ${LINE_COLORS[lineColor] || 'var(--primary)'}40` 
+                            }}
+                          >
+                            <div className="w-7 h-7 rounded-full bg-white shadow-md flex items-center justify-center border-2" style={{ borderColor: LINE_COLORS[lineColor] || 'var(--primary)' }}>
+                              <span className="material-symbols-outlined text-[16px]" style={{ color: LINE_COLORS[lineColor] || 'var(--primary)' }}>train</span>
+                            </div>
+                          </div>
+                        ) : isPast || isVisited ? (
+                          <div className="w-5 h-5 mt-2.5 rounded-full bg-primary border-4 border-white shadow-sm animate-station-pop" style={{ backgroundColor: LINE_COLORS[lineColor] || 'var(--primary)' }}></div>
+                        ) : (
+                          <div className="w-5 h-5 mt-2.5 rounded-full bg-surface-container border-4 border-outline-variant shadow-sm"></div>
                         )}
                       </div>
 
                       {/* Station Info */}
-                      <div className="flex flex-col flex-1 min-w-0">
-                        <span className={`font-body-lg text-body-lg font-semibold truncate ${isCurrent ? 'text-primary font-bold' : 'text-on-surface'}`}>
+                      <div className="flex flex-col flex-1 min-w-0 pt-1">
+                        <span className={`font-body-lg text-body-lg font-semibold truncate ${isCurrent ? 'text-primary font-bold text-lg' : 'text-on-surface'}`}>
                           {stationName}
                         </span>
-                        <span className="font-body-sm text-body-sm text-on-surface-variant">
-                          {isCurrent ? 'Current Station' : isPast || isVisited ? 'Departed' : `Arriving ~${(idx - currentIndex) * 3} min`}
+                        <span className="font-body-sm text-body-sm text-on-surface-variant font-medium">
+                          {isCurrent ? 'Current Station' : isPast || isVisited ? 'Departed' : 'Upcoming'}
                         </span>
                         
                         <div className="flex flex-wrap items-center gap-xs mt-1">

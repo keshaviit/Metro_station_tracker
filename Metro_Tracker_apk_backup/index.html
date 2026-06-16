@@ -1,0 +1,714 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MetroPulse APK - Delhi Metro Tracker & Station Alert App</title>
+    <meta
+      name="description"
+      content="Download MetroPulse APK, a Delhi Metro journey tracker app with live trip progress, station alerts, route schedule, and a clean commuter-friendly interface."
+    />
+    <meta
+      name="keywords"
+      content="Delhi Metro tracker APK, metro station alert app, Delhi Metro journey tracker, destination alert metro app, metro alarm app, MetroPulse APK"
+    />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#4648d4" />
+
+    <meta property="og:title" content="MetroPulse APK - Never Miss Your Metro Stop" />
+    <meta
+      property="og:description"
+      content="Promote smarter Delhi Metro travel with live journey tracking, route progress, and station alert features inside the MetroPulse APK."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="./assets/screen.png" />
+
+    <link rel="canonical" href="https://example.com/" />
+    <link rel="preload" href="./assets/screen.png" as="image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "MetroPulse",
+        "applicationCategory": "TravelApplication",
+        "operatingSystem": "Android",
+        "description": "MetroPulse is a Delhi Metro journey tracker APK for route progress, destination alerts, and station schedule support.",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "INR"
+        }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "What is MetroPulse?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "MetroPulse is an Android APK for metro commuters who want live journey progress, route schedule information, and station alert support."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I download the MetroPulse APK directly?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. The landing page includes a direct APK download button. Place the APK file in the downloads folder and link it as downloads/metropulse.apk."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Who is this app for?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "The app is designed for Delhi Metro and daily metro commuters who want an easier way to track their journey and avoid missing their station."
+            }
+          }
+        ]
+      }
+    </script>
+
+    <style>
+      :root {
+        --primary: #4648d4;
+        --primary-dark: #3032b8;
+        --ink: #171722;
+        --muted: #5d5d6c;
+        --surface: #fcf8ff;
+        --card: #ffffff;
+        --soft: #f0edff;
+        --line: #dedbed;
+        --shadow: 0 24px 70px rgba(39, 39, 80, 0.16);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at 15% 12%, rgba(70, 72, 212, 0.12), transparent 32rem),
+          linear-gradient(180deg, #fcf8ff 0%, #f7f4ff 45%, #ffffff 100%);
+        color: var(--ink);
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .shell {
+        width: min(1120px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+
+      .nav {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: rgba(252, 248, 255, 0.82);
+        border-bottom: 1px solid rgba(222, 219, 237, 0.78);
+        backdrop-filter: blur(16px);
+      }
+
+      .nav-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 72px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 28px;
+        font-weight: 800;
+        color: var(--primary);
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 40px;
+        height: 40px;
+        place-items: center;
+        border-radius: 12px;
+        background: var(--primary);
+        color: white;
+        box-shadow: 0 12px 26px rgba(70, 72, 212, 0.3);
+      }
+
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        min-height: 52px;
+        padding: 0 22px;
+        border-radius: 12px;
+        border: 1px solid transparent;
+        font-weight: 800;
+        transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+      }
+
+      .button:hover {
+        transform: translateY(-2px);
+      }
+
+      .button-primary {
+        background: var(--primary);
+        color: white;
+        box-shadow: 0 14px 34px rgba(70, 72, 212, 0.34);
+      }
+
+      .button-primary:hover {
+        background: var(--primary-dark);
+      }
+
+      .button-secondary {
+        background: white;
+        border-color: var(--line);
+        color: var(--primary);
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.05fr) minmax(330px, 0.95fr);
+        gap: 52px;
+        align-items: center;
+        padding: 72px 0 56px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.72);
+        color: var(--primary);
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        max-width: 760px;
+        margin-bottom: 20px;
+        font-size: clamp(42px, 7vw, 76px);
+        line-height: 0.98;
+        letter-spacing: 0;
+      }
+
+      .lead {
+        max-width: 640px;
+        margin-bottom: 30px;
+        color: var(--muted);
+        font-size: 20px;
+        line-height: 1.65;
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin-bottom: 30px;
+      }
+
+      .trust-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .trust-pill {
+        padding: 9px 12px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.7);
+      }
+
+      .phone-wrap {
+        position: relative;
+        justify-self: center;
+      }
+
+      .phone-glow {
+        position: absolute;
+        inset: 7% -8% 2%;
+        border-radius: 36px;
+        background: linear-gradient(135deg, rgba(70, 72, 212, 0.34), rgba(255, 255, 255, 0));
+        filter: blur(26px);
+      }
+
+      .phone {
+        position: relative;
+        width: min(330px, 82vw);
+        padding: 10px;
+        border: 1px solid rgba(222, 219, 237, 0.9);
+        border-radius: 30px;
+        background: rgba(255, 255, 255, 0.8);
+        box-shadow: var(--shadow);
+      }
+
+      .phone img {
+        display: block;
+        width: 100%;
+        border-radius: 22px;
+      }
+
+      .floating-card {
+        position: absolute;
+        right: -24px;
+        bottom: 72px;
+        width: 190px;
+        padding: 16px;
+        border: 1px solid rgba(222, 219, 237, 0.86);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.88);
+        box-shadow: 0 18px 50px rgba(39, 39, 80, 0.16);
+        backdrop-filter: blur(12px);
+      }
+
+      .floating-card strong {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--primary);
+        font-size: 26px;
+      }
+
+      .progress {
+        height: 8px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #e6e3f2;
+      }
+
+      .progress span {
+        display: block;
+        width: 64%;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--primary);
+      }
+
+      section {
+        padding: 54px 0;
+      }
+
+      .section-title {
+        max-width: 700px;
+        margin-bottom: 28px;
+      }
+
+      .section-title h2 {
+        margin-bottom: 12px;
+        font-size: clamp(30px, 4vw, 46px);
+        line-height: 1.08;
+        letter-spacing: 0;
+      }
+
+      .section-title p {
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.65;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .card {
+        padding: 24px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.82);
+        box-shadow: 0 12px 35px rgba(39, 39, 80, 0.06);
+      }
+
+      .icon {
+        display: grid;
+        width: 46px;
+        height: 46px;
+        margin-bottom: 18px;
+        place-items: center;
+        border-radius: 12px;
+        background: var(--soft);
+        color: var(--primary);
+        font-size: 22px;
+      }
+
+      .card h3 {
+        margin-bottom: 10px;
+        font-size: 21px;
+      }
+
+      .card p,
+      .step p,
+      .faq p {
+        color: var(--muted);
+        line-height: 1.62;
+      }
+
+      .download-panel {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 26px;
+        align-items: center;
+        padding: 34px;
+        border: 1px solid rgba(70, 72, 212, 0.18);
+        border-radius: 18px;
+        background:
+          linear-gradient(135deg, rgba(70, 72, 212, 0.1), rgba(255, 255, 255, 0.9)),
+          white;
+        box-shadow: var(--shadow);
+      }
+
+      .download-panel h2 {
+        margin-bottom: 10px;
+        font-size: clamp(30px, 4vw, 48px);
+      }
+
+      .download-panel p {
+        margin-bottom: 0;
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.6;
+      }
+
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+        counter-reset: install;
+      }
+
+      .step {
+        position: relative;
+        padding: 24px;
+        border-left: 3px solid var(--primary);
+        border-radius: 12px;
+        background: white;
+      }
+
+      .step::before {
+        counter-increment: install;
+        content: counter(install);
+        display: grid;
+        width: 34px;
+        height: 34px;
+        margin-bottom: 14px;
+        place-items: center;
+        border-radius: 999px;
+        background: var(--primary);
+        color: white;
+        font-weight: 800;
+      }
+
+      .faq-list {
+        display: grid;
+        gap: 14px;
+      }
+
+      details {
+        padding: 20px 22px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: white;
+      }
+
+      summary {
+        cursor: pointer;
+        font-weight: 800;
+      }
+
+      details p {
+        margin: 12px 0 0;
+        color: var(--muted);
+        line-height: 1.65;
+      }
+
+      footer {
+        padding: 34px 0;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+      }
+
+      .footer-inner {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      @media (max-width: 860px) {
+        .nav-links {
+          display: none;
+        }
+
+        .hero,
+        .download-panel {
+          grid-template-columns: 1fr;
+        }
+
+        .hero {
+          padding-top: 46px;
+        }
+
+        .grid,
+        .steps {
+          grid-template-columns: 1fr;
+        }
+
+        .floating-card {
+          right: -4px;
+          bottom: 38px;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .shell {
+          width: min(100% - 24px, 1120px);
+        }
+
+        .brand {
+          font-size: 24px;
+        }
+
+        h1 {
+          font-size: 42px;
+        }
+
+        .lead {
+          font-size: 17px;
+        }
+
+        .button {
+          width: 100%;
+        }
+
+        .floating-card {
+          display: none;
+        }
+
+        .download-panel {
+          padding: 24px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="nav">
+      <div class="shell nav-inner">
+        <a class="brand" href="#" aria-label="MetroPulse home">
+          <span class="brand-mark">M</span>
+          MetroPulse
+        </a>
+        <nav class="nav-links" aria-label="Main navigation">
+          <a href="#features">Features</a>
+          <a href="#download">Download APK</a>
+          <a href="#install">Install</a>
+          <a href="#faq">FAQ</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="shell hero">
+        <div>
+          <span class="eyebrow">Delhi Metro tracker APK</span>
+          <h1>Never miss your metro stop again.</h1>
+          <p class="lead">
+            MetroPulse helps commuters track journey progress, follow upcoming stations, and use
+            destination-alert features from a clean Android app built for everyday metro travel.
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="./downloads/metropulse.apk" download>
+              Download APK
+            </a>
+            <a class="button button-secondary" href="#features">View Features</a>
+          </div>
+          <div class="trust-row" aria-label="App highlights">
+            <span class="trust-pill">Live journey UI</span>
+            <span class="trust-pill">Station alert focused</span>
+            <span class="trust-pill">Android APK download</span>
+          </div>
+        </div>
+
+        <div class="phone-wrap" aria-label="MetroPulse app preview">
+          <div class="phone-glow"></div>
+          <div class="phone">
+            <img
+              src="./assets/screen.png"
+              alt="MetroPulse Android app live tracking screen showing journey progress, current station, and route schedule"
+            />
+          </div>
+          <div class="floating-card" aria-hidden="true">
+            <strong>64%</strong>
+            <div class="progress"><span></span></div>
+            <p>Journey progress</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="features" class="shell">
+        <div class="section-title">
+          <h2>Made for commuters who want the app, not a heavy website.</h2>
+          <p>
+            This landing page keeps the focus exactly where it should be: explain the app clearly,
+            rank for Delhi Metro search terms, and push users toward the APK download.
+          </p>
+        </div>
+        <div class="grid">
+          <article class="card">
+            <div class="icon">⌖</div>
+            <h3>Live Trip Tracking</h3>
+            <p>
+              Promote the app's live tracking screen with current station, line name, route status,
+              and journey progress.
+            </p>
+          </article>
+          <article class="card">
+            <div class="icon">●</div>
+            <h3>Station Alerts</h3>
+            <p>
+              Position MetroPulse around the strongest benefit: destination alerts that help users
+              avoid missing their metro stop.
+            </p>
+          </article>
+          <article class="card">
+            <div class="icon">▤</div>
+            <h3>Route Schedule</h3>
+            <p>
+              Show upcoming and previous stations in the same timeline style as the app interface
+              so users instantly understand the experience.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section id="download" class="shell">
+        <div class="download-panel">
+          <div>
+            <span class="eyebrow">Official Android file</span>
+            <h2>Download the MetroPulse APK</h2>
+            <p>
+              Add your APK as <strong>downloads/metropulse.apk</strong>. This button is already
+              connected to that file path, so users can download it directly once the file is placed
+              in the project.
+            </p>
+          </div>
+          <a class="button button-primary" href="./downloads/metropulse.apk" download>
+            Download APK
+          </a>
+        </div>
+      </section>
+
+      <section id="install" class="shell">
+        <div class="section-title">
+          <h2>Simple Android install instructions.</h2>
+          <p>
+            These steps reduce confusion for users who download the APK outside the Play Store.
+          </p>
+        </div>
+        <div class="steps">
+          <article class="step">
+            <h3>Download</h3>
+            <p>Tap the APK button from your Android phone and wait for the file to finish downloading.</p>
+          </article>
+          <article class="step">
+            <h3>Allow Install</h3>
+            <p>If Android asks, allow installation from your browser or file manager for this one app.</p>
+          </article>
+          <article class="step">
+            <h3>Open MetroPulse</h3>
+            <p>Install the APK, open the app, choose your journey, and use the tracking features.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="seo" class="shell">
+        <div class="section-title">
+          <h2>Delhi Metro journey tracker built around one clear promise.</h2>
+          <p>
+            MetroPulse is promoted for searches like Delhi Metro tracker APK, metro station alert
+            app, destination alert metro app, metro journey tracker, and never miss metro stop app.
+          </p>
+        </div>
+      </section>
+
+      <section id="faq" class="shell faq">
+        <div class="section-title">
+          <h2>FAQ</h2>
+          <p>Short answers for search engines and real users.</p>
+        </div>
+        <div class="faq-list">
+          <details>
+            <summary>Is MetroPulse a Delhi Metro tracking app?</summary>
+            <p>
+              Yes. The app is promoted as a Delhi Metro journey tracker focused on live progress,
+              route schedule visibility, and station alert features.
+            </p>
+          </details>
+          <details>
+            <summary>How do I download the APK?</summary>
+            <p>
+              Tap the Download APK button on this page. Before publishing, place the actual file at
+              downloads/metropulse.apk so the button downloads your app.
+            </p>
+          </details>
+          <details>
+            <summary>Why does this website not need MongoDB?</summary>
+            <p>
+              The app contains the core functionality. This website is only a promotional landing
+              page, so static HTML is faster, simpler, cheaper, and easier to rank.
+            </p>
+          </details>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="shell footer-inner">
+        <span>MetroPulse - Delhi Metro tracker APK landing page</span>
+        <span>Built for SEO, trust, and direct APK downloads.</span>
+      </div>
+    </footer>
+  </body>
+</html>
