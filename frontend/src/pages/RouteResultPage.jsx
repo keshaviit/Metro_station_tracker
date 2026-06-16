@@ -251,37 +251,6 @@ export default function RouteResultPage() {
           </div>
         </div>
 
-        {/* Congestion Density Bar HUD */}
-        <div className="bg-surface-container border border-outline-variant/30 p-4 space-y-3 rounded-xl shadow-sm">
-          <div className="flex justify-between items-center">
-            <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">👥 Route Congestion Index</h3>
-            <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-              avgCongestion < 40 ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' :
-              avgCongestion < 70 ? 'bg-yellow-500/10 text-yellow-600 border border-yellow-500/20' :
-              'bg-rose-500/10 text-rose-600 border border-rose-500/20'
-            }`}>
-              {avgCongestion < 40 ? 'Optimal Flow' : avgCongestion < 70 ? 'Moderate Load' : 'Heavy Congestion'}
-            </span>
-          </div>
-          
-          <div className="relative">
-            <div className="flex mb-1.5 items-center justify-between">
-              <span className="text-[9px] font-bold uppercase text-primary">Congestion Level</span>
-              <span className="text-xs font-black font-mono text-on-surface">{avgCongestion}%</span>
-            </div>
-            <div className="overflow-hidden h-2.5 rounded-full bg-surface-variant p-[2px]">
-              <div 
-                style={{ 
-                  width: `${avgCongestion}%`, 
-                  background: avgCongestion < 40 ? 'linear-gradient(90deg, #10B981, #059669)' : avgCongestion < 70 ? 'linear-gradient(90deg, #FBBF24, #D97706)' : 'linear-gradient(90deg, #F43F5E, #E11D48)',
-                  boxShadow: `0 0 8px ${avgCongestion < 40 ? '#10B981' : avgCongestion < 70 ? '#FBBF24' : '#F43F5E'}`
-                }} 
-                className="h-full rounded-full transition-all duration-500"
-              />
-            </div>
-          </div>
-        </div>
-
         {/* Upcoming Arrivals HUD */}
         <div className="bg-surface-container border border-outline-variant/30 p-4 space-y-3 rounded-xl shadow-sm">
           <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">🚊 Upcoming Station Arrivals</h3>
@@ -363,29 +332,32 @@ export default function RouteResultPage() {
           </div>
         </div>
 
-        {/* WhatsApp QR Ticket CTA */}
-        <button
-          id="buy-qr-ticket-btn"
-          onClick={buyOfficialMetroTicket}
-          className="w-full h-14 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white-force rounded-xl font-title-md text-title-md shadow-lg flex items-center justify-center gap-3 active:scale-[0.98] transition-all font-bold uppercase tracking-wider mb-3"
-        >
-          <svg className="w-5 h-5 fill-current text-white-force" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.374-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.746.953 3.71 1.454 5.709 1.455h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-          </svg>
-          Buy QR Ticket
-        </button>
+        {/* Action Buttons Row */}
+        <div className="flex gap-3">
+          {/* WhatsApp QR Ticket CTA */}
+          <button
+            id="buy-qr-ticket-btn"
+            onClick={buyOfficialMetroTicket}
+            className="flex-1 h-14 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white-force rounded-xl font-title-md text-[13px] shadow-lg flex items-center justify-center gap-2 active:scale-[0.98] transition-all font-bold uppercase tracking-wider"
+          >
+            <svg className="w-5 h-5 fill-current text-white-force" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.374-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.746.953 3.71 1.454 5.709 1.455h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+            </svg>
+            <span className="truncate">Buy QR Ticket</span>
+          </button>
 
-        {/* Start Trip CTA */}
-        <button
-          id="start-trip-btn"
-          onClick={handleStartTrip}
-          disabled={starting}
-          className="w-full h-14 bg-primary text-on-primary rounded-xl font-title-md text-title-md shadow-lg flex items-center justify-center gap-sm active:scale-[0.98] transition-all disabled:opacity-70 font-bold uppercase tracking-wider"
-        >
-          <span className="material-symbols-outlined">directions</span>
-          {starting ? 'Starting...' : 'Get Directions'}
-          <span className="material-symbols-outlined">chevron_right</span>
-        </button>
+          {/* Start Trip CTA */}
+          <button
+            id="start-trip-btn"
+            onClick={handleStartTrip}
+            disabled={starting}
+            className="flex-1 h-14 bg-primary text-on-primary rounded-xl font-title-md text-[13px] shadow-lg flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-70 font-bold uppercase tracking-wider"
+          >
+            <span className="material-symbols-outlined text-[20px]">directions</span>
+            <span className="truncate">{starting ? 'Starting...' : 'Get Directions'}</span>
+            <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+          </button>
+        </div>
       </div>
     </div>
   );
