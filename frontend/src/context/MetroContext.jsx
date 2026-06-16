@@ -34,7 +34,7 @@ function reducer(state, action) {
     case 'SET_LAST_ALERTED_STOPS': return { ...state, lastAlertedStops: action.payload };
     case 'SET_ALL_STATIONS':return { ...state, allStations: action.payload };
     case 'END_TRIP':
-      return { ...state, tripId: null, isTracking: false, prediction: null, lastAlertedStops: -1 };
+      return { ...state, tripId: null, route: null, isTracking: false, prediction: null, lastAlertedStops: -1 };
     default:
       return state;
   }
