@@ -195,10 +195,10 @@ export default function HomePage() {
   }, [source, destination, stationNames]);
 
   return (
-    <div className="h-screen bg-white text-gray-900 pt-6 flex flex-col overscroll-none overflow-hidden">
+    <div className="min-h-screen bg-white text-gray-900 pt-6 flex flex-col overflow-y-auto pb-28">
       
       {/* Frozen Header Area */}
-      <div className="flex-shrink-0 px-5">
+      <div className="px-5">
         {/* MetroPulse Hero Banner */}
         <div className="relative w-full rounded-[24px] overflow-hidden aspect-[2/1.05] shadow-md mb-4 border border-gray-100">
           <img 
