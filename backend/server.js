@@ -122,7 +122,7 @@ const PORT = process.env.PORT || 5000;
 
 connectDB()
   .then(() => {
-    server.listen(PORT, () => {
+    server.listen(PORT, '0.0.0.0', () => {
       logger.info(`🚇 Metro Tracker API running on port ${PORT}`);
       logger.info(`🔌 Socket.IO enabled`);
     });
@@ -130,7 +130,7 @@ connectDB()
   .catch((err) => {
     logger.error(`MongoDB connection failed: ${err.message}`);
     // Start server anyway to show error responses instead of nothing
-    server.listen(PORT, () => {
+    server.listen(PORT, '0.0.0.0', () => {
       logger.info(`🚇 Metro Tracker API running on port ${PORT} (DB offline)`);
     });
   });
