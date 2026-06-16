@@ -7,75 +7,75 @@
 /* ── Dynamic Theme CSS Variables ───────────────────────────── */
 :root {
   /* Aura Professional Light Theme (Default) */
-  --surface: #fcf8ff;
-  --surface-dim: #dbd8e4;
-  --surface-bright: #fcf8ff;
-  --surface-container-lowest: #ffffff;
-  --surface-container-low: #f5f2fe;
-  --surface-container: #efecf8;
-  --surface-container-high: #e9e6f3;
-  --surface-container-highest: #e4e1ed;
-  --surface-variant: #e4e1ed;
-  --on-surface: #1b1b23;
-  --on-surface-variant: #464554;
-  --background: #fcf8ff;
-  --on-background: #1b1b23;
-  --primary: #4648d4;
-  --on-primary: #ffffff;
-  --primary-container: #6063ee;
-  --on-primary-container: #fffbff;
-  --outline: #767586;
-  --outline-variant: #c7c4d7;
+  --surface: #FFFFFF;
+  --surface-dim: #ebf2ed;
+  --surface-bright: #FFFFFF;
+  --surface-container-lowest: #FFFFFF;
+  --surface-container-low: #F6FBF7;
+  --surface-container: #f0f5f1;
+  --surface-container-high: #e5ebe6;
+  --surface-container-highest: #dae0db;
+  --surface-variant: #dae0db;
+  --on-surface: #1F2937;
+  --on-surface-variant: #6B7280;
+  --background: #F6FBF7;
+  --on-background: #1F2937;
+  --primary: #4CAF50;
+  --on-primary: #FFFFFF;
+  --primary-container: #81C784;
+  --on-primary-container: #1F2937;
+  --outline: #6B7280;
+  --outline-variant: #E5E7EB;
 
   /* Legacy variables mappings */
-  --bg-primary: #fcf8ff;
-  --text-primary: #1b1b23;
-  --text-secondary: #464554;
-  --text-muted: #767586;
-  --card-bg: rgba(255, 255, 255, 0.85);
-  --card-border: rgba(199, 196, 215, 0.3);
-  --card-shadow: 0 4px 20px rgba(30, 41, 59, 0.05);
+  --bg-primary: #F6FBF7;
+  --text-primary: #1F2937;
+  --text-secondary: #6B7280;
+  --text-muted: #6B7280;
+  --card-bg: rgba(255, 255, 255, 0.9);
+  --card-border: rgba(229, 231, 235, 0.5);
+  --card-shadow: 0 4px 20px rgba(31, 41, 55, 0.03);
   --input-bg: #FFFFFF;
-  --input-border: rgba(118, 117, 134, 0.3);
-  --accent-color: #4648D4;
-  --nav-bg: rgba(252, 248, 255, 0.85);
-  --nav-border: rgba(199, 196, 215, 0.3);
+  --input-border: rgba(229, 231, 235, 0.8);
+  --accent-color: #FFC857;
+  --nav-bg: rgba(246, 251, 247, 0.85);
+  --nav-border: rgba(229, 231, 235, 0.5);
 }
 
 .dark {
-  /* Aura Professional Dark Theme */
-  --surface: #121118;
-  --surface-dim: #0c0b0f;
-  --surface-bright: #1c1b22;
-  --surface-container-lowest: #0a090e;
-  --surface-container-low: #1a1920;
-  --surface-container: #22212a;
-  --surface-container-high: #2d2b36;
-  --surface-container-highest: #383642;
-  --surface-variant: #484554;
-  --on-surface: #fcf8ff;
-  --on-surface-variant: #c7c4d7;
-  --background: #121118;
-  --on-background: #fcf8ff;
-  --primary: #c0c1ff;
-  --on-primary: #07006c;
-  --primary-container: #2f2ebe;
-  --on-primary-container: #e1e0ff;
-  --outline: #918f9e;
-  --outline-variant: #484554;
+  /* Aura Professional Dark Theme - customized for green brand scheme */
+  --surface: #0a0f0b;
+  --surface-dim: #070a08;
+  --surface-bright: #101712;
+  --surface-container-lowest: #050706;
+  --surface-container-low: #0c120e;
+  --surface-container: #121a13;
+  --surface-container-high: #18221a;
+  --surface-container-highest: #1e2b20;
+  --surface-variant: #1e2b20;
+  --on-surface: #F6FBF7;
+  --on-surface-variant: #6B7280;
+  --background: #0a0f0b;
+  --on-background: #F6FBF7;
+  --primary: #81C784;
+  --on-primary: #121a13;
+  --primary-container: #4CAF50;
+  --on-primary-container: #FFFFFF;
+  --outline: #6B7280;
+  --outline-variant: #28332b;
 
   /* Legacy dark mode mapping */
-  --bg-primary: #121118;
-  --text-primary: #fcf8ff;
-  --text-secondary: #c7c4d7;
-  --text-muted: #918f9e;
-  --card-bg: rgba(34, 33, 42, 0.7);
+  --bg-primary: #0a0f0b;
+  --text-primary: #F6FBF7;
+  --text-secondary: #6B7280;
+  --text-muted: #6B7280;
+  --card-bg: rgba(18, 26, 19, 0.7);
   --card-border: rgba(255, 255, 255, 0.05);
   --card-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
-  --input-bg: #1a1920;
-  --input-border: rgba(255, 255, 255, 0.1);
-  --accent-color: #c0c1ff;
-  --nav-bg: rgba(18, 17, 24, 0.85);
+  --input-bg: #0c120e;
+  --input-border: rgba(255, 255, 255, 0.08);
+  --accent-color: #FFC857;
+  --nav-bg: rgba(10, 15, 11, 0.85);
   --nav-border: rgba(255, 255, 255, 0.05);
 }
 

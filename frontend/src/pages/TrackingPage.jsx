@@ -486,12 +486,12 @@ export default function TrackingPage() {
             </svg>
 
             {/* Teal Location Pin */}
-            <span className="material-symbols-outlined text-[#00ab82] text-[44px] relative z-10" style={{ fontVariationSettings: "'FILL' 1" }}>
+            <span className="material-symbols-outlined text-[#4CAF50] text-[44px] relative z-10" style={{ fontVariationSettings: "'FILL' 1" }}>
               location_on
             </span>
 
             {/* Overlapping Cancel badge at bottom right */}
-            <div className="absolute bottom-6 right-6 w-8 h-8 rounded-full bg-white border border-[#00ab82] flex items-center justify-center text-[#00ab82] shadow-md z-20">
+            <div className="absolute bottom-6 right-6 w-8 h-8 rounded-full bg-white border border-[#4CAF50] flex items-center justify-center text-[#4CAF50] shadow-md z-20">
               <span className="material-symbols-outlined text-[16px] font-bold">close</span>
             </div>
           </div>
@@ -509,7 +509,7 @@ export default function TrackingPage() {
           {/* Button */}
           <button
             onClick={() => navigate('/')}
-            className="w-full h-12 bg-[#00ab82] hover:bg-[#009470] text-white rounded-full font-bold text-[15px] shadow-sm hover:shadow transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            className="w-full h-12 bg-[#4CAF50] hover:bg-[#388E3C] text-white rounded-full font-bold text-[15px] shadow-sm hover:shadow transition-all active:scale-[0.98] flex items-center justify-center gap-2"
           >
             <span className="material-symbols-outlined text-[20px]">map</span>
             Plan a Journey

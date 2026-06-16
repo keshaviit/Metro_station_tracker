@@ -87,13 +87,13 @@ export default function ProfilePage() {
   // Render Guest Page Placeholder
   if (isGuest) {
     return (
-      <div className="bg-gradient-to-b from-[#eefaf5] via-[#fcf8ff] to-[#f4f7fc] min-h-screen relative flex items-center justify-center p-6 pb-[96px]">
+      <div className="bg-gradient-to-b from-[#F6FBF7] via-[#fcf8ff] to-[#f4f7fc] min-h-screen relative flex items-center justify-center p-6 pb-[96px]">
         {/* White Card */}
         <div className="bg-white border border-gray-100 rounded-[28px] p-8 w-full max-w-[360px] shadow-[0_8px_30px_rgba(0,0,0,0.03)] text-center flex flex-col items-center">
           
           {/* Circular Lock Icon Badge */}
-          <div className="w-20 h-20 rounded-full bg-[#eefaf5] border border-gray-100 flex items-center justify-center text-[#00ab82] mb-6 shadow-sm">
-            <svg className="w-10 h-10 text-[#00ab82]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <div className="w-20 h-20 rounded-full bg-[#F6FBF7] border border-gray-100 flex items-center justify-center text-[#4CAF50] mb-6 shadow-sm">
+            <svg className="w-10 h-10 text-[#4CAF50]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
@@ -112,7 +112,7 @@ export default function ProfilePage() {
           {/* Button */}
           <button
             onClick={() => navigate('/auth')}
-            className="w-full h-12 bg-[#00664e] hover:bg-[#00523f] text-white rounded-full font-bold text-[15px] shadow-sm hover:shadow transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            className="w-full h-12 bg-[#4CAF50] hover:bg-[#388E3C] text-white rounded-full font-bold text-[15px] shadow-sm hover:shadow transition-all active:scale-[0.98] flex items-center justify-center gap-2"
           >
             <span className="material-symbols-outlined text-[20px]">login</span>
             Sign In to Account
