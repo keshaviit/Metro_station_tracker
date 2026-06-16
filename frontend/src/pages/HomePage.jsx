@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { metroAPI } from '../services/api';
 import { useMetro } from '../context/MetroContext';
 import { useAuth } from '../context/AuthContext';
@@ -9,8 +9,20 @@ import homeBannerImg from '../assets/home_banner.png';
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { state, dispatch } = useMetro();
   const { user, isAuthenticated } = useAuth();
+
+  // Populate source/destination from search-station page navigation state
+  useEffect(() => {
+    if (location.state) {
+      if (location.state.source !== undefined) setSource(location.state.source);
+      if (location.state.destination !== undefined) setDestination(location.state.destination);
+      
+      // Clear location state to prevent repeating values
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const [stationNames, setStationNames] = useState([]);
   const [source, setSource] = useState('');
@@ -198,8 +210,8 @@ export default function HomePage() {
         
         {/* From Input Area */}
         <div 
-          className={`flex flex-col justify-center px-4 py-2.5 min-h-[64px] border-b border-gray-100 transition-colors rounded-t-[20px] ${activeField === 'source' ? 'bg-green-50/30' : ''}`}
-          onClick={() => setActiveField('source')}
+          className="flex flex-col justify-center px-4 py-2.5 min-h-[64px] border-b border-gray-100 transition-colors rounded-t-[20px] active:bg-gray-50/50 cursor-pointer"
+          onClick={() => navigate('/search-station', { state: { type: 'source', source, destination } })}
         >
           <div className="flex items-center w-full gap-3">
             {/* Green dot icon */}
@@ -214,8 +226,8 @@ export default function HomePage() {
                   type="text"
                   placeholder="Select starting station..."
                   value={source}
-                  onChange={(e) => { setSource(e.target.value); setActiveField('source'); }}
-                  className="w-full bg-transparent outline-none text-gray-800 text-[16px] placeholder:text-gray-400"
+                  readOnly={true}
+                  className="w-full bg-transparent outline-none text-gray-800 text-[16px] placeholder:text-gray-400 cursor-pointer"
                 />
                 <button onClick={detectNearest} className="text-[#00a884] flex-shrink-0 ml-2 active:scale-90 transition-transform p-1">
                   <span className="material-symbols-outlined text-[20px]">my_location</span>
@@ -227,8 +239,8 @@ export default function HomePage() {
 
         {/* To Input Area */}
         <div 
-          className={`flex flex-col justify-center px-4 py-2.5 min-h-[64px] transition-colors rounded-b-[20px] ${activeField === 'destination' ? 'bg-red-50/30' : ''}`}
-          onClick={() => setActiveField('destination')}
+          className="flex flex-col justify-center px-4 py-2.5 min-h-[64px] transition-colors rounded-b-[20px] active:bg-gray-50/50 cursor-pointer"
+          onClick={() => navigate('/search-station', { state: { type: 'destination', source, destination } })}
         >
           <div className="flex items-center w-full gap-3">
             {/* Red dot icon */}
@@ -242,8 +254,8 @@ export default function HomePage() {
                 type="text"
                 placeholder="Select destination station..."
                 value={destination}
-                onChange={(e) => { setDestination(e.target.value); setActiveField('destination'); }}
-                className="w-full bg-transparent outline-none text-gray-800 text-[16px] placeholder:text-gray-400 pr-8"
+                readOnly={true}
+                className="w-full bg-transparent outline-none text-gray-800 text-[16px] placeholder:text-gray-400 pr-8 cursor-pointer"
               />
             </div>
           </div>
@@ -271,33 +283,10 @@ export default function HomePage() {
       )}
       </div>
 
-      {/* Unified Station List (Scrollable) */}
-      <div className="flex-1 overflow-y-auto px-7 pb-28 mt-2">
-        {recentToDisplay.map((stationName) => (
-          <div 
-            key={`recent-${stationName}`}
-            onClick={() => handleStationClick(stationName)}
-            className="flex items-center py-3.5 border-b border-gray-100 cursor-pointer active:bg-gray-50 transition-colors"
-          >
-            <span className="material-symbols-outlined text-gray-400 mr-4 text-[22px]">history</span>
-            <span className="text-gray-800 text-[15px]">{stationName}</span>
-          </div>
-        ))}
-        {othersToDisplay.map((stationName) => (
-          <div 
-            key={`station-${stationName}`}
-            onClick={() => handleStationClick(stationName)}
-            className="flex items-center py-3.5 border-b border-gray-100 cursor-pointer active:bg-gray-50 transition-colors"
-          >
-            <span className="material-symbols-outlined text-[#425b76] mr-4 text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>location_on</span>
-            <span className="text-gray-800 text-[15px]">{stationName}</span>
-          </div>
-        ))}
-        {filteredStations.length === 0 && (
-          <div className="py-6 text-center text-gray-500 text-[14px]">
-            No stations found.
-          </div>
-        )}
+      {/* Decorative center logo to keep home page elegant */}
+      <div className="flex-1 flex flex-col items-center justify-center px-8 opacity-[0.25] select-none pointer-events-none mt-4 pb-28">
+        <span className="material-symbols-outlined text-[80px] text-[#00a884]">subway</span>
+        <span className="text-sm font-bold text-gray-400 mt-2 tracking-wider uppercase">Delhi Transit System</span>
       </div>
 
     </div>

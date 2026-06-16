@@ -9,6 +9,7 @@ import TrackingPage from './pages/TrackingPage';
 import MapPage from './pages/MapPage';
 import AuthPage from './pages/AuthPage';
 import ProfilePage from './pages/ProfilePage';
+import SearchStationPage from './pages/SearchStationPage';
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 
@@ -126,6 +127,7 @@ function AppContent() {
         <Route path="/map"     element={<ProtectedRoute><MapPage /></ProtectedRoute>} />
         <Route path="/auth"    element={<AuthPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/search-station" element={<ProtectedRoute><SearchStationPage /></ProtectedRoute>} />
       </Routes>
       <BottomNav />
     </div>
