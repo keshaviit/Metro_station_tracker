@@ -6,7 +6,6 @@ import { useNotification } from '../hooks/useNotification';
 import { metroAPI } from '../services/api';
 import MetroGraph from '../services/routeEngine';
 import { Capacitor } from '@capacitor/core';
-import { buyOfficialMetroTicket } from '../services/ticketService';
 
 const LINE_COLORS = {
   Blue: '#2563EB', Yellow: '#EAB308', Red: '#EF4444',
@@ -102,7 +101,6 @@ export default function TrackingPage() {
   const [recalculating, setRecalculating] = useState(false);
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   const [presetSaved, setPresetSaved] = useState(null);
-  const [showDebugPanel, setShowDebugPanel] = useState(false);
   const [showDisclosure, setShowDisclosure] = useState(false);
   const [activeInterchangeAlert, setActiveInterchangeAlert] = useState(null);
   const dismissedInterchangesRef = useRef(new Set());
@@ -647,80 +645,8 @@ export default function TrackingPage() {
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             <span className="font-bold tracking-wider">LIVE TRACKING</span>
           </div>
-          <button
-            onClick={() => setShowDebugPanel(!showDebugPanel)}
-            className="w-9 h-9 rounded-full bg-surface-container border border-outline-variant/30 flex items-center justify-center text-primary hover:bg-surface-container-high transition-all active:scale-90"
-            title="Telemetry Debug console"
-          >
-            <span className="material-symbols-outlined text-[18px]">analytics</span>
-          </button>
         </div>
       </nav>
-
-      {/* Developer Telemetry Console */}
-      {showDebugPanel && (
-        <div className="fixed right-3 bottom-28 z-[8000] w-[90%] max-w-sm glass-panel border border-outline-variant/30 bg-surface/95 backdrop-blur-3xl p-5 shadow-2xl animate-slide-up space-y-4 rounded-2xl">
-          <div className="flex items-center justify-between border-b border-outline-variant/30 pb-2.5">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-[20px]">construction</span>
-              <span className="text-xs font-black text-on-surface uppercase tracking-wider font-mono">Developer Telemetry HUD</span>
-            </div>
-            <button onClick={() => setShowDebugPanel(false)} className="text-on-surface hover:text-primary transition-colors">
-              <span className="material-symbols-outlined">close</span>
-            </button>
-          </div>
-
-          <div className="space-y-2 text-[10px] font-mono leading-relaxed text-on-surface-variant">
-            <div className="flex justify-between border-b border-outline-variant/10 pb-1">
-              <span>🛰️ GNSS POSITION:</span>
-              <span className="text-primary font-bold">
-                {userLoc ? `${userLoc.lat.toFixed(5)}, ${userLoc.lng.toFixed(5)}` : 'WAITING FOR FIX'}
-              </span>
-            </div>
-            <div className="flex justify-between border-b border-outline-variant/10 pb-1">
-              <span>🛡️ ACCURACY BOUND:</span>
-              <span className={userLoc?.accuracy <= 15 ? 'text-emerald-600 font-bold' : 'text-amber-600 font-bold'}>
-                {userLoc ? `±${Math.round(userLoc.accuracy)} meters` : 'N/A'}
-              </span>
-            </div>
-            <div className="flex justify-between border-b border-outline-variant/10 pb-1">
-              <span>🚇 NEAREST STATION:</span>
-              <span className="text-primary font-bold">
-                {prediction?.currentStation || 'SCANNING...'}
-              </span>
-            </div>
-            <div className="flex justify-between border-b border-outline-variant/10 pb-1">
-              <span>🛣️ NEXT TARGET NODE:</span>
-              <span className="text-primary font-bold">
-                {prediction?.nextStation || destinationName || 'N/A'}
-              </span>
-            </div>
-            <div className="flex justify-between border-b border-outline-variant/10 pb-1">
-              <span>📊 STATIONS REMAINING:</span>
-              <span className="text-on-surface font-bold">
-                {prediction?.stopsRemaining != null ? prediction.stopsRemaining : 'N/A'}
-              </span>
-            </div>
-            <div className="flex justify-between border-b border-outline-variant/10 pb-1">
-              <span>🔍 GRAPH PATH INDEX:</span>
-              <span className="text-on-surface-variant font-bold">
-                {prediction?.currentIndex != null ? `${prediction.currentIndex + 1} / ${route?.path?.length}` : '0 / 0'}
-              </span>
-            </div>
-          </div>
-
-          <div className="bg-[#050608]/90 border border-outline-variant/25 rounded-lg p-2.5 max-h-24 overflow-y-auto scrollbar-thin">
-            <p className="text-[9px] text-outline font-mono font-bold uppercase tracking-wider mb-1">Live Engine Log Stream</p>
-            {prediction ? (
-              <p className="text-[9px] text-emerald-400 font-mono leading-tight">
-                [{new Date().toLocaleTimeString()}] Method: {prediction.method || 'graph_distance'}
-              </p>
-            ) : (
-              <p className="text-[9px] text-slate-500 font-mono leading-tight">Listening for packets...</p>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Looping Chime Alarm Screen Overlay */}
       {currentAlarmConfig && (
@@ -839,25 +765,6 @@ export default function TrackingPage() {
           </div>
         </section>
 
-        {/* WhatsApp QR Ticket Bento Section */}
-        <section className="bg-emerald-600/10 border border-emerald-500/20 rounded-xl p-md flex items-center justify-between gap-sm animate-fade-in">
-          <div className="flex items-center gap-sm">
-            <span className="material-symbols-outlined text-emerald-500 text-[28px]">qr_code_2</span>
-            <div className="text-left">
-              <p className="text-xs font-bold text-emerald-500">Need a Metro Ticket?</p>
-              <p className="text-[10px] text-on-surface-variant">Instantly book your official QR ticket on WhatsApp.</p>
-            </div>
-          </div>
-          <button
-            onClick={buyOfficialMetroTicket}
-            className="px-3.5 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white-force rounded-lg font-label-md text-xs font-bold shadow-sm active:scale-[0.98] transition-all flex items-center gap-2"
-          >
-            <svg className="w-4 h-4 fill-current text-white-force" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.374-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.746.953 3.71 1.454 5.709 1.455h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-            </svg>
-            Buy Ticket
-          </button>
-        </section>
 
         {/* Notification Permission Banner */}
         {(permission !== 'granted' && !audioUnlocked) && (
