@@ -156,6 +156,25 @@ export default function HomePage() {
     }
   };
 
+  const handleQuickSelect = (stationName) => {
+    setError('');
+    if (!source) {
+      setSource(stationName);
+      setActiveField('destination');
+    } else if (!destination) {
+      if (source !== stationName) {
+        setDestination(stationName);
+      } else {
+        setError('Source and destination cannot be the same.');
+      }
+    } else {
+      // If both are filled, overwrite source and reset destination to prompt next selection
+      setSource(stationName);
+      setDestination('');
+      setActiveField('destination');
+    }
+  };
+
   const openWhatsappTickets = () => {
     window.open('https://wa.me/919650855800?text=Hi', '_blank');
   };
@@ -289,6 +308,27 @@ export default function HomePage() {
           <div className="w-5 h-5 border-2 border-[#4CAF50] border-t-transparent rounded-full animate-spin"></div>
         </div>
       )}
+
+      {/* Quick Access Stations Section */}
+      <div className="mt-4 px-1">
+        <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 ml-1">
+          {uniqueRecentStations.length > 0 ? 'Recent Stations' : 'Popular Stations'}
+        </h3>
+        <div className="flex flex-wrap gap-2">
+          {(uniqueRecentStations.length > 0 ? uniqueRecentStations : ['Rajiv Chowk', 'Kashmere Gate', 'Noida Sector 52', 'Dwarka Sector 21', 'Botanical Garden']).map(station => (
+            <button
+              key={station}
+              onClick={() => handleQuickSelect(station)}
+              className="px-3.5 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-full text-[13px] font-bold shadow-sm flex items-center gap-1.5 active:scale-95 transition-all border border-gray-200/50"
+            >
+              <span className="material-symbols-outlined text-[16px] text-[#4CAF50]">
+                {uniqueRecentStations.length > 0 ? 'history' : 'trending_up'}
+              </span>
+              {station}
+            </button>
+          ))}
+        </div>
+      </div>
       </div>
 
       {/* Decorative center logo to keep home page elegant */}
