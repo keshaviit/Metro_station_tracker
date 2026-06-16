@@ -310,22 +310,22 @@ export default function HomePage() {
       )}
 
       {/* Quick Access Stations Section */}
-      <div className="mt-4 px-1">
-        <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5 ml-1">
+      <div className="mt-4 px-1 flex flex-col">
+        <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 ml-1 flex-shrink-0">
           {uniqueRecentStations.length > 0 ? 'Recent Stations' : 'Popular Stations'}
         </h3>
-        <div className="flex flex-wrap gap-2">
+        <div className="overflow-y-auto max-h-52 pr-1 space-y-0.5">
           {(uniqueRecentStations.length > 0 ? uniqueRecentStations : ['Rajiv Chowk', 'Kashmere Gate', 'Noida Sector 52', 'Dwarka Sector 21', 'Botanical Garden']).map(station => (
-            <button
+            <div
               key={station}
               onClick={() => handleQuickSelect(station)}
-              className="px-3.5 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-full text-[13px] font-bold shadow-sm flex items-center gap-1.5 active:scale-95 transition-all border border-gray-200/50"
+              className="flex items-center py-3 border-b border-gray-50 cursor-pointer active:bg-gray-50 transition-colors px-1"
             >
-              <span className="material-symbols-outlined text-[16px] text-[#4CAF50]">
-                {uniqueRecentStations.length > 0 ? 'history' : 'trending_up'}
+              <span className="material-symbols-outlined text-slate-400 mr-4 text-[20px]">
+                {uniqueRecentStations.length > 0 ? 'history' : 'location_on'}
               </span>
-              {station}
-            </button>
+              <span className="text-gray-800 text-[15px] font-semibold">{station}</span>
+            </div>
           ))}
         </div>
       </div>
